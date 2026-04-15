@@ -601,7 +601,6 @@
 
             // 監聽郵遞區號與車型變化，觸發報價
             document.getElementById('zipCode').addEventListener('change', fetchPriceFromGAS);
-            // 車型改為客製化選單監聽在下方 logic
             
             // 客製化下拉選單邏輯
             const trigger = document.getElementById('customSelectTrigger');
@@ -914,6 +913,9 @@
             btn.disabled = true;
             btn.innerText = '預約資料傳送中...';
 
+            const rideHour = document.getElementById('rideHour').value;
+            const rideMinute = document.getElementById('rideMinute').value;
+
             const formData = {
                 action: 'submitBooking',
                 bookingId: document.getElementById('bookingId').value,
@@ -922,7 +924,7 @@
                 passengerPhone: document.getElementById('passengerPhone').value,
                 address: document.getElementById('zipCode').value + ' ' + document.getElementById('address').value,
                 rideDate: document.getElementById('rideDate').value,
-                rideTime: document.getElementById('rideHour').value + ':' + document.getElementById('rideMinute').value,
+                rideTime: rideHour + ":" + rideMinute,
                 bookingType: document.getElementById('bookingType').value,
                 flightNumber: document.getElementById('flightNumber').value,
                 vehicleType: document.getElementById('vehicleType').value,
@@ -937,10 +939,25 @@
 
             let returnInfo = '';
             if (formData.bookingType === '回來') {
+                const rDate = document.getElementById('returnDate').value;
+                const rHour = document.getElementById('returnHour').value;
+                const rMin = document.getElementById('returnMinute').value;
+                const rTime = rHour + ":" + rMin;
+                const rFlight = document.getElementById('returnFlightNumber').value;
+                
                 const rAddr = document.getElementById('sameAsDeparture').checked ? '同去程' : `${document.getElementById('returnZipCode').value} ${document.getElementById('returnAddress').value}`;
                 const rPax = document.getElementById('sameAsPax').checked ? '同去程' : `大人:${document.getElementById('adultCountReturn').value}, 小孩:${document.getElementById('childCountReturn').value}, 幼兒:${document.getElementById('infantCountReturn').value}`;
                 const rLug = document.getElementById('sameAsLuggage').checked ? '同去程' : `登機箱:${document.getElementById('carryOnCountReturn').value}, 託運:${document.getElementById('checkedCountReturn').value}`;
-                returnInfo = `\n\n【回程資訊】\n資訊如送機\n時間: ${document.getElementById('returnDate').value} ${document.getElementById('returnHour').value}:${document.getElementById('returnMinute').value}\n航班: ${document.getElementById('returnFlightNumber').value}\n地址: ${rAddr}\n人數: ${rPax}\n行李: ${rLug}`;
+                
+                // 將回程詳細資料存入 formData 以供後端接收
+                formData.returnDate = rDate;
+                formData.returnTime = rTime;
+                formData.returnFlight = rFlight;
+                formData.returnAddress = rAddr;
+                formData.returnPax = rPax;
+                formData.returnLuggage = rLug;
+
+                returnInfo = `\n\n【回程資訊】\n資訊如送機\n日期：${rDate}\n時間：${rTime}\n航班：${rFlight}\n地址：${rAddr}\n人數：${rPax}\n行李：${rLug}`;
             }
 
             fetch(GAS_API_URL, {
@@ -951,7 +968,7 @@
             .then(res => res.json())
             .then(result => {
                 if(result.status === "success") {
-                    showModal('預約已成功送出！');
+                    showModal('您的訂單已成功送出！請您耐心稍候，待客服人員為您確認訂單內容無誤後，即立即為您保留車輛，感謝您的配合。');
                     if (typeof liff !== 'undefined' && liff.isInClient()) {
                         liff.sendMessages([{ type: 'text', text: baseMsg + returnInfo }]).then(() => liff.closeWindow());
                     } else {
@@ -959,6 +976,10 @@
                         btn.innerText = '確認預約送出';
                         document.getElementById('bookingForm').reset();
                         generateBookingId();
+                        // 重置車型標籤與回程區塊
+                        document.getElementById('selectedVehicleLabel').innerHTML = "請選擇接送車型";
+                        document.getElementById('selectedVehicleLabel').classList.replace('text-black', 'text-gray-500');
+                        toggleReturnSection();
                     }
                 } else {
                     showModal('系統處理異常，請洽客服');
