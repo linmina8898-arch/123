@@ -27,6 +27,10 @@
         /* 隱藏預設的數字上下箭頭 */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* 客製選單旋轉箭頭 */
+        .select-arrow { transition: transform 0.3s; }
+        .select-open .select-arrow { transform: rotate(180deg); }
     </style>
 </head>
 <body class="antialiased pb-12">
@@ -44,7 +48,7 @@
             
             <!-- 共用：郵遞區號的資料清單 -->
             <datalist id="zipCodeOptions">
-                <!-- 這裡的選項會由 GAS 自動載入 -->
+                <!-- 這裡的選項會由系統自動載入 -->
             </datalist>
 
             <!-- 預約編號 -->
@@ -53,7 +57,7 @@
                 <input type="text" id="bookingId" class="bw-input font-mono" readonly>
             </div>
 
-            <!-- LINE 暱稱 (隱藏，僅供後端抓取) -->
+            <!-- LINE 暱稱 (隱藏，僅供系統紀錄) -->
             <input type="hidden" id="lineName" value="載入中...">
 
             <!-- LINE ID (供客人填寫) -->
@@ -321,15 +325,32 @@
                 </div>
             </div>
 
-            <!-- 接送車型 -->
-            <div>
+            <!-- 接送車型 (客製化下拉選單以支援括號字體縮小) -->
+            <div class="relative" id="vehicleDropdownContainer">
                 <label class="bw-label">接送車型</label>
-                <select id="vehicleType" class="bw-input" required>
-                    <option value="" disabled selected>請選擇接送車型</option>
-                    <option value="小車" id="opt-small">小車 (最多2人2件行李，含登機箱)</option>
-                    <option value="休旅車" id="opt-suv">休旅車 (最多4人3件行李，含登機箱)</option>
-                    <option value="大車" id="opt-van">大車 (最多6人6件29吋行李，含登機箱)</option>
-                </select>
+                <!-- 隱藏的實際輸入框，供 JS 讀取與驗證 -->
+                <input type="hidden" id="vehicleType" value="">
+                
+                <!-- 選單外盒 -->
+                <div id="customSelectTrigger" class="bw-input cursor-pointer flex justify-between items-center bg-white">
+                    <span id="selectedVehicleLabel" class="text-gray-500">請選擇接送車型</span>
+                    <svg class="select-arrow w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+
+                <!-- 選項清單 -->
+                <div id="customOptionsList" class="hidden absolute left-0 right-0 z-40 bg-white border-2 border-black mt-[-2px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <div class="vehicle-option p-3 border-b border-gray-200 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="小車" id="opt-small">
+                        小車 <span class="text-xs">(最多2人2件行李，含登機箱)</span>
+                    </div>
+                    <div class="vehicle-option p-3 border-b border-gray-200 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="休旅車" id="opt-suv">
+                        休旅車 <span class="text-xs">(最多4人3件行李，含登機箱)</span>
+                    </div>
+                    <div class="vehicle-option p-3 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="大車" id="opt-van">
+                        大車 <span class="text-xs">(最多6人6件29吋行李，含登機箱)</span>
+                    </div>
+                </div>
                 <p id="vehicleWarning" class="text-red-600 text-sm font-bold mt-2 hidden">目前人數與行李配置沒有合適的車型，請重新調整。</p>
             </div>
 
@@ -391,7 +412,7 @@
                         <li><strong>預約車型：</strong> 請務必依「實際乘車人數」與「行李件數尺寸」預約合適車款。</li>
                         <li><strong>行李與乘車規範：</strong> 全程請繫妥安全帶，座位及腳踏區僅限放隨身背包。若現場行李過多不符預約車型，公司有權拒載，且該趟行程恕不退費。</li>
                         <li><strong>車內禁食：</strong> 為維護乘車品質，車內全面禁止飲食。</li>
-                        <li><strong>兒童安全座椅：</strong> 0~4歲（18公斤內）嬰幼兒依法須使用安全座椅。若未依需求加購導致違規，相關罰款將由乘客自行負擔。</li>
+                        <li><strong>兒童安全座椅：</strong> 0~4歲（18公斤內）嬰幼兒依法須使用安全座椅。若未依需求加購導致維規，相關罰款將由乘客自行負擔。</li>
                     </ul>
                 </div>
                 <label class="flex items-start sm:items-center gap-3 cursor-pointer">
@@ -419,9 +440,9 @@
 
     <script>
         // ==========================================
-        // GAS API 網址 (請確認 GAS 已部署為「所有人」存取)
+        // API 網址 (請確認後端已正確發布)
         // ==========================================
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz91flAode2w_S4jVqqZIm5Hh7ReX3Dmjs0zy2F8bxkd6CRilkbrMBvPzVnh0Ep4aFN2Q/exec";
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz7hB5D7XoIq0NWwnGiS55Ah0ls7F4pBm5Javn7tYeaqslvP18L4vMIT_qAkLr65v5x/exec";
 
         /* ========================
            1. 初始設定與 LIFF
@@ -434,7 +455,7 @@
             validateVehicleAndLuggage(); // 初始檢查
             toggleReturnSection(); // 初始檢查回程區塊
             
-            // 頁面載入時，向 GAS 索取所有郵遞區號資料
+            // 頁面載入時，向系統索取所有郵遞區號資料
             fetchZipCodesFromGAS();
         });
 
@@ -455,7 +476,7 @@
                         liff.getProfile().then(profile => {
                             document.getElementById('lineName').value = profile.displayName;
                         }).catch(err => {
-                            document.getElementById('lineName').value = "無法取得LINE名稱";
+                            document.getElementById('lineName').value = "無法取得系統名稱";
                         });
                     } else {
                         document.getElementById('lineName').value = "測試用戶(未登入)";
@@ -580,7 +601,52 @@
 
             // 監聽郵遞區號與車型變化，觸發報價
             document.getElementById('zipCode').addEventListener('change', fetchPriceFromGAS);
-            document.getElementById('vehicleType').addEventListener('change', fetchPriceFromGAS);
+            // 車型改為客製化選單監聽在下方 logic
+            
+            // 客製化下拉選單邏輯
+            const trigger = document.getElementById('customSelectTrigger');
+            const optionsList = document.getElementById('customOptionsList');
+            const container = document.getElementById('vehicleDropdownContainer');
+            const hiddenInput = document.getElementById('vehicleType');
+            const selectedLabel = document.getElementById('selectedVehicleLabel');
+
+            trigger.addEventListener('click', () => {
+                const isOpen = !optionsList.classList.contains('hidden');
+                if (isOpen) {
+                    optionsList.classList.add('hidden');
+                    container.classList.remove('select-open');
+                } else {
+                    optionsList.classList.remove('hidden');
+                    container.classList.add('select-open');
+                }
+            });
+
+            // 點擊選項
+            document.querySelectorAll('.vehicle-option').forEach(option => {
+                option.addEventListener('click', (e) => {
+                    const val = option.getAttribute('data-value');
+                    const labelHtml = option.innerHTML;
+                    
+                    hiddenInput.value = val;
+                    selectedLabel.innerHTML = labelHtml;
+                    selectedLabel.classList.remove('text-gray-500');
+                    selectedLabel.classList.add('text-black');
+                    
+                    optionsList.classList.add('hidden');
+                    container.classList.remove('select-open');
+                    
+                    fetchPriceFromGAS();
+                    validateVehicleAndLuggage();
+                });
+            });
+
+            // 點擊外部關閉選單
+            document.addEventListener('click', (e) => {
+                if (!container.contains(e.target)) {
+                    optionsList.classList.add('hidden');
+                    container.classList.remove('select-open');
+                }
+            });
 
             // 人數與行李變更 - 驗證車型與費用
             document.querySelectorAll('.passenger-input, .luggage-input, .passenger-input-return, .luggage-input-return').forEach(input => {
@@ -601,7 +667,7 @@
            5. 核心邏輯與後端 API
            ======================== */
         
-        // 向 GAS 抓取郵遞區號清單
+        // 向系統抓取郵遞區號清單
         async function fetchZipCodesFromGAS() {
             const zipInput = document.getElementById('zipCode');
             try {
@@ -622,9 +688,8 @@
                     zipInput.placeholder = "🔍 搜尋區號...";
                 }
             } catch (error) {
-                console.warn("GAS 連線失敗:", error);
+                console.warn("連線失敗:", error);
                 zipInput.placeholder = "搜尋區域... (離線備用中)";
-                // 載入備用資料
                 const fallbackZips = ["100台北市 中正區", "330桃園市 桃園區"];
                 const dataList = document.getElementById('zipCodeOptions');
                 dataList.innerHTML = '';
@@ -636,7 +701,7 @@
             }
         }
 
-        // 向 Google Apps Script 抓取報價 (含來回雙倍邏輯)
+        // 向系統抓取報價 (含來回雙倍邏輯)
         async function fetchPriceFromGAS() {
             const zipCode = document.getElementById('zipCode').value.trim();
             const vehicleType = document.getElementById('vehicleType').value;
@@ -659,17 +724,12 @@
                 
                 if (data.status === "success" && data.price) {
                     let basePrice = parseInt(data.price);
-                    
-                    // 來回加價直接 *2
                     if (isRoundTrip) basePrice *= 2;
-                    
-                    // 加上自動加價項目
                     const infants = parseInt(document.getElementById('infantCount').value) || 0;
                     let maxInfants = infants;
                     if (isRoundTrip && !document.getElementById('sameAsPax').checked) {
                         maxInfants = Math.max(infants, parseInt(document.getElementById('infantCountReturn').value) || 0);
                     }
-                    
                     if (maxInfants > 0) basePrice += (maxInfants * 200);
                     if (document.getElementById('extraNight').checked) basePrice += 200;
                     if (document.getElementById('extraPickup').checked) basePrice += 200;
@@ -683,7 +743,7 @@
                 }
             } catch (error) {
                 console.warn("報價讀取失敗", error);
-                priceInput.value = "連線失敗(請檢查GAS權限)，請洽客服";
+                priceInput.value = "系統連線失敗，請洽客服";
             }
         }
 
@@ -763,18 +823,30 @@
             const optSmall = document.getElementById('opt-small');
             const optSuv = document.getElementById('opt-suv');
             const optVan = document.getElementById('opt-van');
-            const vehicleSelect = document.getElementById('vehicleType');
+            const vehicleVal = document.getElementById('vehicleType').value;
+            const selectedLabel = document.getElementById('selectedVehicleLabel');
 
             let canSmall = maxPax <= 2 && maxLuggage <= 2;
             let canSuv = maxPax <= 4 && maxLuggage <= 3;
             let canVan = maxPax <= 6 && maxLuggage <= 6;
 
-            optSmall.disabled = !canSmall;
-            optSuv.disabled = !canSuv;
-            optVan.disabled = !canVan;
+            // 更新選單項目的視覺效果與可用性
+            [optSmall, optSuv, optVan].forEach((el, idx) => {
+                const possible = [canSmall, canSuv, canVan][idx];
+                if (!possible) {
+                    el.classList.add('opacity-30', 'pointer-events-none', 'bg-gray-100');
+                    el.classList.remove('hover:bg-black', 'hover:text-white');
+                } else {
+                    el.classList.remove('opacity-30', 'pointer-events-none', 'bg-gray-100');
+                    el.classList.add('hover:bg-black', 'hover:text-white');
+                }
+            });
 
-            if (vehicleSelect.value === "小車" && !canSmall) vehicleSelect.value = "";
-            if (vehicleSelect.value === "休旅車" && !canSuv) vehicleSelect.value = "";
+            if (vehicleVal === "小車" && !canSmall || vehicleVal === "休旅車" && !canSuv) {
+                document.getElementById('vehicleType').value = "";
+                selectedLabel.innerHTML = "請選擇接送車型";
+                selectedLabel.classList.replace('text-black', 'text-gray-500');
+            }
             
             document.getElementById('vehicleWarning').classList.toggle('hidden', canSmall || canSuv || canVan);
         }
@@ -804,7 +876,6 @@
            ======================== */
         function submitForm() {
             let errors = [];
-
             const fields = [
                 { id: 'lineId', name: 'LINE ID' },
                 { id: 'passengerName', name: '乘車人姓名' },
@@ -831,7 +902,6 @@
 
             const phone = document.getElementById('passengerPhone').value.replace(/\D/g, '');
             if (phone && phone.length !== 10) errors.push('電話格式錯誤，必須剛好10碼');
-
             if (!document.getElementById('agreeDisclaimer').checked) errors.push('須勾選同意「免責聲明」');
 
             if (errors.length > 0) {
@@ -842,7 +912,7 @@
 
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
-            btn.innerText = '連線 Google 表單中...';
+            btn.innerText = '預約資料傳送中...';
 
             const formData = {
                 action: 'submitBooking',
@@ -875,7 +945,7 @@
 
             fetch(GAS_API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // 避開 CORS preflight
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(formData)
             })
             .then(res => res.json())
@@ -891,11 +961,11 @@
                         generateBookingId();
                     }
                 } else {
-                    showModal('Google 伺服器傳回錯誤，請洽客服');
+                    showModal('系統處理異常，請洽客服');
                 }
             })
             .catch(err => {
-                showModal('連線失敗！原因：Google Apps Script 權限尚未設為「所有人」。<br><br>請至 GAS 右上角「管理部署」設定「誰可以存取：所有人」，並「建立新版本」。');
+                showModal('連線失敗！請確認網路環境，或稍後再試。');
                 btn.disabled = false;
                 btn.innerText = '確認預約送出';
             });
