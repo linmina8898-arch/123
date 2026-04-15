@@ -290,7 +290,7 @@
                 </div>
             </div>
 
-            <!-- 行李件數 -->
+            <!-- 行理件數 -->
             <div class="border-2 border-black p-4">
                 <label class="bw-label mb-4 text-lg">行李件數 <span class="text-xs font-normal text-gray-600">（行李總和最多6件）</span></label>
                 <div class="grid grid-cols-2 gap-4">
@@ -419,7 +419,7 @@
 
     <script>
         // ==========================================
-        // GAS API 網址 (請確保後端包含 getZipCodes 功能)
+        // GAS API 網址 (請確認 GAS 已部署為「所有人」存取)
         // ==========================================
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz91flAode2w_S4jVqqZIm5Hh7ReX3Dmjs0zy2F8bxkd6CRilkbrMBvPzVnh0Ep4aFN2Q/exec";
 
@@ -578,11 +578,11 @@
                 validateVehicleAndLuggage();
             });
 
-            // 監聽郵遞區號與車型變化，觸發抓取報價 (改為 change 讓下拉選單點擊後立刻觸發)
+            // 監聽郵遞區號與車型變化，觸發報價
             document.getElementById('zipCode').addEventListener('change', fetchPriceFromGAS);
             document.getElementById('vehicleType').addEventListener('change', fetchPriceFromGAS);
 
-            // 人數與行李變更 - 驗證車型與安全座椅費用
+            // 人數與行李變更 - 驗證車型與費用
             document.querySelectorAll('.passenger-input, .luggage-input, .passenger-input-return, .luggage-input-return').forEach(input => {
                 input.addEventListener('change', () => {
                     validateVehicleAndLuggage();
@@ -604,53 +604,28 @@
         // 向 GAS 抓取郵遞區號清單
         async function fetchZipCodesFromGAS() {
             const zipInput = document.getElementById('zipCode');
-            const returnZipInput = document.getElementById('returnZipCode');
-            
             try {
-                // 加上時間戳記防止瀏覽器快取舊資料
                 const cacheBuster = new Date().getTime();
                 const response = await fetch(`${GAS_API_URL}?action=getZipCodes&t=${cacheBuster}`, {
                     method: 'GET',
                     redirect: 'follow'
                 });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
                 const result = await response.json();
-                
-                if (result.status === "success" && result.data && result.data.length > 0) {
+                if (result.status === "success" && result.data) {
                     const dataList = document.getElementById('zipCodeOptions');
-                    dataList.innerHTML = ''; // 清空預設值
-                    
-                    // 將收到的區號陣列建立成選項
+                    dataList.innerHTML = '';
                     result.data.forEach(zip => {
                         const option = document.createElement('option');
                         option.value = zip;
                         dataList.appendChild(option);
                     });
-                    
-                    // 成功提示
                     zipInput.placeholder = "🔍 搜尋區號...";
-                    returnZipInput.placeholder = "🔍 搜尋區號...";
-                } else {
-                    throw new Error("GAS 回傳成功，但沒有資料。可能是後端程式碼尚未更新！");
                 }
             } catch (error) {
-                console.warn("抓取真實清單失敗，改用備用清單：", error);
-                // 提示用戶目前正在使用離線備用清單
-                zipInput.placeholder = "🔍 搜尋區號... (備用)";
-                returnZipInput.placeholder = "🔍 搜尋區號... (備用)";
-                
-                // 載入備用郵遞區號
-                const fallbackZips = [
-                    "100台北市 中正區", "103台北市 大同區", "104台北市 中山區", 
-                    "105台北市 松山區", "106台北市 大安區", "108台北市 萬華區", 
-                    "110台北市 信義區", "111台北市 士林區", "112台北市 北投區", 
-                    "114台北市 內湖區", "115台北市 南港區", "116台北市 文山區",
-                    "220新北市 板橋區", "234新北市 永和區", "235新北市 中和區", 
-                    "330桃園市 桃園區", "320桃園市 中壢區"
-                ];
+                console.warn("GAS 連線失敗:", error);
+                zipInput.placeholder = "搜尋區域... (離線備用中)";
+                // 載入備用資料
+                const fallbackZips = ["100台北市 中正區", "330桃園市 桃園區"];
                 const dataList = document.getElementById('zipCodeOptions');
                 dataList.innerHTML = '';
                 fallbackZips.forEach(zip => {
@@ -661,17 +636,18 @@
             }
         }
 
-        // 向 Google Apps Script 抓取報價
+        // 向 Google Apps Script 抓取報價 (含來回雙倍邏輯)
         async function fetchPriceFromGAS() {
             const zipCode = document.getElementById('zipCode').value.trim();
             const vehicleType = document.getElementById('vehicleType').value;
             const priceInput = document.getElementById('estimatedPrice');
+            const isRoundTrip = document.getElementById('bookingType').value === '回來';
 
             if (!zipCode || !vehicleType) return;
 
             priceInput.value = "計算報價中...";
-            priceInput.classList.remove('text-3xl', 'text-red-600', 'text-gray-700');
-            priceInput.classList.add('text-lg', 'text-gray-500');
+            priceInput.classList.replace('text-3xl', 'text-lg');
+            priceInput.classList.replace('text-red-600', 'text-gray-500');
             
             try {
                 const cacheBuster = new Date().getTime();
@@ -679,43 +655,39 @@
                     method: 'GET',
                     redirect: 'follow'
                 });
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
                 const data = await response.json();
                 
                 if (data.status === "success" && data.price) {
                     let basePrice = parseInt(data.price);
                     
-                    // 加上來回雙倍邏輯
-                    if (document.getElementById('bookingType').value === '回來') {
-                        basePrice *= 2;
+                    // 來回加價直接 *2
+                    if (isRoundTrip) basePrice *= 2;
+                    
+                    // 加上自動加價項目
+                    const infants = parseInt(document.getElementById('infantCount').value) || 0;
+                    let maxInfants = infants;
+                    if (isRoundTrip && !document.getElementById('sameAsPax').checked) {
+                        maxInfants = Math.max(infants, parseInt(document.getElementById('infantCountReturn').value) || 0);
                     }
                     
-                    // 加上自動加價的項目 (安全座椅、夜間、接機等)
-                    const infants = parseInt(document.getElementById('infantCount').value) || 0;
-                    if (infants > 0) basePrice += (infants * 200);
+                    if (maxInfants > 0) basePrice += (maxInfants * 200);
                     if (document.getElementById('extraNight').checked) basePrice += 200;
                     if (document.getElementById('extraPickup').checked) basePrice += 200;
                     if (document.getElementById('extraSign').checked) basePrice += 200;
 
                     priceInput.value = `NT$ ${basePrice} (含加價項目)`;
-                    priceInput.classList.remove('text-lg', 'text-gray-500', 'text-gray-700');
-                    priceInput.classList.add('text-3xl', 'text-red-600');
+                    priceInput.classList.replace('text-lg', 'text-3xl');
+                    priceInput.classList.replace('text-gray-500', 'text-red-600');
                 } else {
                     priceInput.value = "無此區報價，請手動確認拼寫或洽客服";
-                    priceInput.classList.remove('text-3xl', 'text-red-600', 'text-gray-500');
-                    priceInput.classList.add('text-lg', 'text-gray-700');
                 }
             } catch (error) {
-                console.warn("抓取報價連線失敗，請檢查 GAS 權限", error);
-                priceInput.value = "連線失敗，請洽客服";
-                priceInput.classList.remove('text-3xl', 'text-red-600', 'text-gray-500');
-                priceInput.classList.add('text-lg', 'text-gray-700');
+                console.warn("報價讀取失敗", error);
+                priceInput.value = "連線失敗(請檢查GAS權限)，請洽客服";
             }
         }
 
-        // 檢查 48 小時限制
+        // 檢查 48 小時預約限制
         function checkDateTime() {
             const dateVal = document.getElementById('rideDate').value;
             const hourVal = document.getElementById('rideHour').value;
@@ -726,132 +698,65 @@
             if (dateVal && hourVal && minuteVal) {
                 const bookingDateTime = new Date(`${dateVal}T${hourVal}:${minuteVal}:00`);
                 if ((bookingDateTime - now) < fortyEightHours) {
-                    showModal('預約時間小於48小時無法線上預約，<br><br>請直接來電客服。');
+                    showModal('去程預約時間小於48小時無法線上預約，<br><br>請直接來電客服。');
                     document.getElementById('rideDate').value = '';
-                    document.getElementById('rideHour').value = '';
-                    document.getElementById('rideMinute').value = '';
                 }
             }
 
-            const isRoundTrip = document.getElementById('bookingType').value === '回來';
-            if (isRoundTrip) {
+            if (document.getElementById('bookingType').value === '回來') {
                 const rDate = document.getElementById('returnDate').value;
                 const rHour = document.getElementById('returnHour').value;
                 const rMin = document.getElementById('returnMinute').value;
-
                 if (rDate && rHour && rMin) {
                     const returnDateTime = new Date(`${rDate}T${rHour}:${rMin}:00`);
                     if ((returnDateTime - now) < fortyEightHours) {
                         showModal('回程預約時間小於48小時無法線上預約，<br><br>請直接來電客服。');
                         document.getElementById('returnDate').value = '';
-                        document.getElementById('returnHour').value = '';
-                        document.getElementById('returnMinute').value = '';
                     }
                 }
             }
         }
 
-        // 動態顯示/隱藏回程區塊與初始化
+        // 控制回程資訊開關
         function toggleReturnSection() {
             const isRoundTrip = document.getElementById('bookingType').value === '回來';
             const returnSection = document.getElementById('returnTripSection');
-            const rDate = document.getElementById('returnDate');
-            const rHour = document.getElementById('returnHour');
-            const rMin = document.getElementById('returnMinute');
+            document.getElementById('returnDate').required = isRoundTrip;
+            document.getElementById('returnHour').required = isRoundTrip;
+            document.getElementById('returnMinute').required = isRoundTrip;
 
             if (isRoundTrip) {
                 returnSection.classList.remove('hidden');
-                rDate.required = true;
-                rHour.required = true;
-                rMin.required = true;
             } else {
                 returnSection.classList.add('hidden');
-                rDate.required = false;
-                rHour.required = false;
-                rMin.required = false;
-                
-                // 切換回單程時，清空及重置回程資料
-                rDate.value = '';
-                rHour.value = '';
-                rMin.value = '';
-                document.getElementById('returnFlightNumber').value = '';
-                
-                // 重置回程地址選項
-                document.getElementById('sameAsDeparture').checked = true;
-                document.getElementById('returnAddressContainer').classList.add('hidden');
-                document.getElementById('returnZipCode').value = '';
-                document.getElementById('returnAddress').value = '';
-
-                // 重置回程人數選項
-                document.getElementById('sameAsPax').checked = true;
-                document.getElementById('returnPaxContainer').classList.add('hidden');
-                document.getElementById('adultCountReturn').value = "1";
-                document.getElementById('childCountReturn').value = "0";
-                document.getElementById('infantCountReturn').value = "0";
-
-                // 重置回程行李選項
-                document.getElementById('sameAsLuggage').checked = true;
-                document.getElementById('returnLuggageContainer').classList.add('hidden');
-                document.getElementById('carryOnCountReturn').value = "0";
-                document.getElementById('checkedCountReturn').value = "0";
             }
             validateVehicleAndLuggage();
         }
 
-        // 動態驗證車型與限制 (雙向檢查)
+        // 動態驗證車型 (雙向檢查最大負載)
         function validateVehicleAndLuggage() {
-            // 去程資料
             const adults = parseInt(document.getElementById('adultCount').value) || 0;
             const childs = parseInt(document.getElementById('childCount').value) || 0;
             const infants = parseInt(document.getElementById('infantCount').value) || 0;
             const carryOn = parseInt(document.getElementById('carryOnCount').value) || 0;
             const checkedBag = parseInt(document.getElementById('checkedCount').value) || 0;
 
-            let totalPax = adults + childs + infants;
-            let totalLuggage = carryOn + checkedBag;
+            let maxPax = adults + childs + infants;
+            let maxLuggage = carryOn + checkedBag;
 
-            // 回程資料 (如果有的話)
-            const isRoundTrip = document.getElementById('bookingType').value === '回來';
-            let rTotalPax = totalPax;
-            let rTotalLuggage = totalLuggage;
-
-            if (isRoundTrip) {
+            if (document.getElementById('bookingType').value === '回來') {
                 if (!document.getElementById('sameAsPax').checked) {
-                    const rAdults = parseInt(document.getElementById('adultCountReturn').value) || 0;
-                    const rChilds = parseInt(document.getElementById('childCountReturn').value) || 0;
-                    const rInfants = parseInt(document.getElementById('infantCountReturn').value) || 0;
-                    rTotalPax = rAdults + rChilds + rInfants;
+                    const rPax = (parseInt(document.getElementById('adultCountReturn').value) || 0) + (parseInt(document.getElementById('childCountReturn').value) || 0) + (parseInt(document.getElementById('infantCountReturn').value) || 0);
+                    maxPax = Math.max(maxPax, rPax);
                 }
                 if (!document.getElementById('sameAsLuggage').checked) {
-                    const rCarryOn = parseInt(document.getElementById('carryOnCountReturn').value) || 0;
-                    const rCheckedBag = parseInt(document.getElementById('checkedCountReturn').value) || 0;
-                    rTotalLuggage = rCarryOn + rCheckedBag;
+                    const rLug = (parseInt(document.getElementById('carryOnCountReturn').value) || 0) + (parseInt(document.getElementById('checkedCountReturn').value) || 0);
+                    maxLuggage = Math.max(maxLuggage, rLug);
                 }
             }
 
-            // 以兩趟中最高的人數與行李來驗證車型，確保車輛裝得下
-            const maxPax = Math.max(totalPax, rTotalPax);
-            const maxLuggage = Math.max(totalLuggage, rTotalLuggage);
-
-            // 絕對限制總和檢查
             if (maxPax > 6 || maxLuggage > 6) {
-                showModal('已超過車隊最高乘載限制！<br><br>單趟人數最多6位，行李最多6件。');
-                
-                // 超標時重置為基本值
-                document.getElementById('adultCount').value = "1";
-                document.getElementById('childCount').value = "0";
-                document.getElementById('infantCount').value = "0";
-                document.getElementById('carryOnCount').value = "0";
-                document.getElementById('checkedCount').value = "0";
-                
-                if (isRoundTrip) {
-                    document.getElementById('adultCountReturn').value = "1";
-                    document.getElementById('childCountReturn').value = "0";
-                    document.getElementById('infantCountReturn').value = "0";
-                    document.getElementById('carryOnCountReturn').value = "0";
-                    document.getElementById('checkedCountReturn').value = "0";
-                }
-                validateVehicleAndLuggage(); // 重新驗證
+                showModal('已超過單車最高乘載限制！<br><br>單趟人數最多6位，行李最多6件。');
                 return;
             }
 
@@ -859,150 +764,89 @@
             const optSuv = document.getElementById('opt-suv');
             const optVan = document.getElementById('opt-van');
             const vehicleSelect = document.getElementById('vehicleType');
-            const warningText = document.getElementById('vehicleWarning');
 
-            // 預設皆可選
-            let canSmall = true, canSuv = true, canVan = true;
-
-            // 依照最大負載規則停用不合適的車型
-            if (maxPax > 2) canSmall = false;
-            if (maxPax > 4) canSuv = false;
-            if (maxLuggage > 2) canSmall = false;
-            if (maxLuggage > 3) canSuv = false;
+            let canSmall = maxPax <= 2 && maxLuggage <= 2;
+            let canSuv = maxPax <= 4 && maxLuggage <= 3;
+            let canVan = maxPax <= 6 && maxLuggage <= 6;
 
             optSmall.disabled = !canSmall;
             optSuv.disabled = !canSuv;
             optVan.disabled = !canVan;
 
-            // 若當前選擇的車型被禁用了，則重置選擇
             if (vehicleSelect.value === "小車" && !canSmall) vehicleSelect.value = "";
             if (vehicleSelect.value === "休旅車" && !canSuv) vehicleSelect.value = "";
-            if (vehicleSelect.value === "大車" && !canVan) vehicleSelect.value = "";
-
-            if (!canSmall && !canSuv && !canVan) {
-                warningText.classList.remove('hidden');
-            } else {
-                warningText.classList.add('hidden');
-            }
+            
+            document.getElementById('vehicleWarning').classList.toggle('hidden', canSmall || canSuv || canVan);
         }
 
-        // 動態計算加價項目顯示
+        // 加價判斷
         function calculateSurcharges() {
-            // 1. 夜間加成 (22:00 ~ 05:59)
             const hourVal = document.getElementById('rideHour').value;
             const chkNight = document.getElementById('extraNight');
             if (hourVal) {
                 const h = parseInt(hourVal);
-                if (h >= 22 || h <= 5) {
-                    chkNight.checked = true;
-                } else {
-                    chkNight.checked = false;
-                }
+                chkNight.checked = (h >= 22 || h <= 5);
             }
-            // 變更加價時更新總報價
-            fetchPriceFromGAS();
-
-            // 2. 接機加價 (只預約接機 +$200)
-            const typeVal = document.getElementById('bookingType').value;
-            const chkPickup = document.getElementById('extraPickup');
-            if (typeVal === '接機') {
-                chkPickup.checked = true;
-            } else {
-                chkPickup.checked = false;
-            }
-
-            // 3. 安全座椅 (4歲以下每1位+$200) 判斷去程與回程的最高需求
+            document.getElementById('extraPickup').checked = (document.getElementById('bookingType').value === '接機');
+            
             const infants = parseInt(document.getElementById('infantCount').value) || 0;
             let maxInfants = infants;
-            
             if (document.getElementById('bookingType').value === '回來' && !document.getElementById('sameAsPax').checked) {
-                const rInfants = parseInt(document.getElementById('infantCountReturn').value) || 0;
-                maxInfants = Math.max(infants, rInfants);
+                maxInfants = Math.max(infants, parseInt(document.getElementById('infantCountReturn').value) || 0);
             }
-
-            const chkSeat = document.getElementById('extraChildSeat');
-            const seatDisplay = document.getElementById('seatPriceDisplay');
-            if (maxInfants > 0) {
-                chkSeat.checked = true;
-                seatDisplay.innerText = `+$${maxInfants * 200}`;
-            } else {
-                chkSeat.checked = false;
-                seatDisplay.innerText = `+$0`;
-            }
+            document.getElementById('extraChildSeat').checked = (maxInfants > 0);
+            document.getElementById('seatPriceDisplay').innerText = `+$${maxInfants * 200}`;
+            fetchPriceFromGAS();
         }
 
         /* ========================
-           6. 表單送出處理
+           6. 表單送出處理 (統整報錯)
            ======================== */
         function submitForm() {
             let errors = [];
 
-            // 自訂驗證邏輯：收集所有未填寫的錯誤項目
-            const requiredFields = [
-                { id: 'lineId', msg: '請填寫 LINE ID' },
-                { id: 'passengerName', msg: '請填寫乘車人姓名' },
-                { id: 'passengerPhone', msg: '請填寫聯絡電話' },
-                { id: 'zipCode', msg: '請選擇接送地區及郵遞區號' },
-                { id: 'address', msg: '請填寫接送地址 (詳細地址)' },
-                { id: 'rideDate', msg: '請選擇乘車日期' },
-                { id: 'rideHour', msg: '請選擇乘車時間(時)' },
-                { id: 'rideMinute', msg: '請選擇乘車時間(分)' },
-                { id: 'flightNumber', msg: '請填寫航班編號' },
-                { id: 'vehicleType', msg: '請選擇接送車型' },
-                { id: 'paymentMethod', msg: '請選擇付款方式' }
+            const fields = [
+                { id: 'lineId', name: 'LINE ID' },
+                { id: 'passengerName', name: '乘車人姓名' },
+                { id: 'passengerPhone', name: '聯絡電話' },
+                { id: 'zipCode', name: '接送郵遞區號' },
+                { id: 'address', name: '接送詳細地址' },
+                { id: 'rideDate', name: '乘車日期' },
+                { id: 'rideHour', name: '乘車小時' },
+                { id: 'rideMinute', name: '乘車分鐘' },
+                { id: 'flightNumber', name: '航班編號' },
+                { id: 'vehicleType', name: '接送車型' },
+                { id: 'paymentMethod', name: '付款方式' }
             ];
 
-            for (let field of requiredFields) {
-                if (!document.getElementById(field.id).value) {
-                    errors.push(field.msg);
-                }
-            }
+            fields.forEach(f => {
+                if (!document.getElementById(f.id).value) errors.push(`${f.name} 為必填欄位`);
+            });
 
-            // 回程必填檢查
             if (document.getElementById('bookingType').value === '回來') {
-                if (!document.getElementById('returnDate').value || !document.getElementById('returnHour').value || !document.getElementById('returnMinute').value) {
-                    errors.push('選擇來回接送，請完整填寫「回程日期與時間」');
-                }
-                if (!document.getElementById('returnFlightNumber').value) {
-                    errors.push('選擇來回接送，請填寫「回程航班編號」');
-                }
-                if (!document.getElementById('sameAsDeparture').checked) {
-                    if (!document.getElementById('returnZipCode').value || !document.getElementById('returnAddress').value) {
-                        errors.push('選擇了不同地址，請填寫完整的回程接送地址');
-                    }
-                }
+                if (!document.getElementById('returnDate').value) errors.push('回程日期 未填寫');
+                if (!document.getElementById('returnHour').value) errors.push('回程時間(小時) 未填寫');
+                if (!document.getElementById('returnFlightNumber').value) errors.push('回程航班編號 未填寫');
             }
 
-            // 電話 10 碼強制檢查
-            const phoneDigits = document.getElementById('passengerPhone').value.replace(/\D/g, '');
-            if (document.getElementById('passengerPhone').value && phoneDigits.length !== 10) {
-                errors.push('聯絡電話格式錯誤！必須剛好為 10 碼數字。');
-            }
+            const phone = document.getElementById('passengerPhone').value.replace(/\D/g, '');
+            if (phone && phone.length !== 10) errors.push('電話格式錯誤，必須剛好10碼');
 
-            // 免責聲明同意檢查
-            if (!document.getElementById('agreeDisclaimer').checked) {
-                errors.push('請您詳細閱讀，並勾選「同意免責聲明」。');
-            }
+            if (!document.getElementById('agreeDisclaimer').checked) errors.push('須勾選同意「免責聲明」');
 
-            // 集中顯示所有錯誤
             if (errors.length > 0) {
-                let errorHtml = '<div class="text-left text-sm space-y-1 mt-2 text-red-600 font-bold">';
-                errors.forEach(err => {
-                    errorHtml += `<p>• ${err}</p>`;
-                });
-                errorHtml += '</div>';
-                showModal(`請修正以下漏填或錯誤項目：<br>${errorHtml}`);
+                let list = errors.map(e => `• ${e}`).join('<br>');
+                showModal(`請修正以下項目後再送出：<br><br><div class="text-left text-red-600 font-bold">${list}</div>`);
                 return;
             }
 
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
-            btn.innerText = '資料傳送中...';
+            btn.innerText = '連線 Google 表單中...';
 
             const formData = {
                 action: 'submitBooking',
                 bookingId: document.getElementById('bookingId').value,
-                lineName: document.getElementById('lineName').value,
                 lineId: document.getElementById('lineId').value,
                 passengerName: document.getElementById('passengerName').value + ' ' + document.getElementById('passengerTitle').value,
                 passengerPhone: document.getElementById('passengerPhone').value,
@@ -1019,92 +863,39 @@
                 remarks: document.getElementById('remarks').value
             };
 
-            // ==== LINE 訊息格式組裝開始 ====
-            const baseLineMsg = `【123機場接送 預約單成立】
-預約編號：${formData.bookingId}
-乘車人姓名：${formData.passengerName}
-乘車人電話：${formData.passengerPhone}
-接送地址：${formData.address}
-乘車日期：${formData.rideDate}
-乘車時間：${formData.rideTime}
-預約類型：${formData.bookingType}
-接送機場：桃園機場
-航班編號：${formData.flightNumber}
-預約車型：${formData.vehicleType}
-乘車人數：${formData.pax}
-行李件數：${formData.luggage}
-報價金額：${formData.estimatedPrice}
-付款方式：${formData.payment}
-備註：${formData.remarks || '無'}`;
+            const baseMsg = `【123機場接送 預約單成立】\n預約編號：${formData.bookingId}\n乘車人姓名：${formData.passengerName}\n乘車人電話：${formData.passengerPhone}\n接送地址：${formData.address}\n乘車日期：${formData.rideDate}\n乘車時間：${formData.rideTime}\n預約類型：${formData.bookingType}\n接送機場：桃園機場\n航班編號：${formData.flightNumber}\n預約車型：${formData.vehicleType}\n乘車人數：${formData.pax}\n行李件數：${formData.luggage}\n報價金額：${formData.estimatedPrice}\n付款方式：${formData.payment}\n備註：${formData.remarks || '無'}`;
 
-            let returnInfoText = '';
+            let returnInfo = '';
             if (formData.bookingType === '回來') {
-                const rDate = document.getElementById('returnDate').value;
-                const rTime = document.getElementById('returnHour').value + ':' + document.getElementById('returnMinute').value;
-                const rFlight = document.getElementById('returnFlightNumber').value;
-                
-                let rAddress = '同去程';
-                if (!document.getElementById('sameAsDeparture').checked) {
-                    const rZip = document.getElementById('returnZipCode').value;
-                    const rAddr = document.getElementById('returnAddress').value;
-                    rAddress = `${rZip} ${rAddr}`;
-                }
-
-                let rPax = '同去程';
-                if (!document.getElementById('sameAsPax').checked) {
-                    rPax = `大人:${document.getElementById('adultCountReturn').value}, 小孩:${document.getElementById('childCountReturn').value}, 幼兒:${document.getElementById('infantCountReturn').value}`;
-                }
-
-                let rLuggage = '同去程';
-                if (!document.getElementById('sameAsLuggage').checked) {
-                    rLuggage = `登機箱:${document.getElementById('carryOnCountReturn').value}, 託運:${document.getElementById('checkedCountReturn').value}`;
-                }
-                
-                returnInfoText = `\n\n【回程資訊】\n時間: ${rDate} ${rTime}\n航班: ${rFlight}\n地址: ${rAddress}\n人數: ${rPax}\n行李: ${rLuggage}`;
+                const rAddr = document.getElementById('sameAsDeparture').checked ? '同去程' : `${document.getElementById('returnZipCode').value} ${document.getElementById('returnAddress').value}`;
+                const rPax = document.getElementById('sameAsPax').checked ? '同去程' : `大人:${document.getElementById('adultCountReturn').value}, 小孩:${document.getElementById('childCountReturn').value}, 幼兒:${document.getElementById('infantCountReturn').value}`;
+                const rLug = document.getElementById('sameAsLuggage').checked ? '同去程' : `登機箱:${document.getElementById('carryOnCountReturn').value}, 託運:${document.getElementById('checkedCountReturn').value}`;
+                returnInfo = `\n\n【回程資訊】\n資訊如送機\n時間: ${document.getElementById('returnDate').value} ${document.getElementById('returnHour').value}:${document.getElementById('returnMinute').value}\n航班: ${document.getElementById('returnFlightNumber').value}\n地址: ${rAddr}\n人數: ${rPax}\n行李: ${rLug}`;
             }
-
-            const finalLineMessage = baseLineMsg + returnInfoText;
-            // ==== LINE 訊息格式組裝結束 ====
 
             fetch(GAS_API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // 避開 CORS preflight
                 body: JSON.stringify(formData)
             })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                return res.json();
-            })
+            .then(res => res.json())
             .then(result => {
                 if(result.status === "success") {
-                    showModal('預約已成功送出！<br><br>我們將盡快為您安排車輛。');
-                    
+                    showModal('預約已成功送出！');
                     if (typeof liff !== 'undefined' && liff.isInClient()) {
-                        liff.sendMessages([{
-                            type: 'text',
-                            text: finalLineMessage
-                        }]).then(() => {
-                            liff.closeWindow();
-                        }).catch((err) => console.warn('訊息傳送失敗', err));
+                        liff.sendMessages([{ type: 'text', text: baseMsg + returnInfo }]).then(() => liff.closeWindow());
                     } else {
                         btn.disabled = false;
                         btn.innerText = '確認預約送出';
                         document.getElementById('bookingForm').reset();
                         generateBookingId();
-                        validateVehicleAndLuggage();
-                        calculateSurcharges();
                     }
                 } else {
-                    showModal('傳送失敗，請稍後再試或聯繫客服。');
-                    btn.disabled = false;
-                    btn.innerText = '確認預約送出';
+                    showModal('Google 伺服器傳回錯誤，請洽客服');
                 }
             })
             .catch(err => {
-                console.warn("GAS 提交連線失敗:", err);
-                showModal('網路異常或系統錯誤。請確認您的 Google Apps Script 已設定為「所有人」皆可存取。');
+                showModal('連線失敗！原因：Google Apps Script 權限尚未設為「所有人」。<br><br>請至 GAS 右上角「管理部署」設定「誰可以存取：所有人」，並「建立新版本」。');
                 btn.disabled = false;
                 btn.innerText = '確認預約送出';
             });
