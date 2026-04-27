@@ -45,11 +45,6 @@
 
         <!-- 加入 novalidate 阻擋瀏覽器預設的報錯氣泡，改用我們自訂的 Modal -->
         <form id="bookingForm" class="space-y-6" novalidate>
-            
-            <!-- 共用：郵遞區號的資料清單 -->
-            <datalist id="zipCodeOptions">
-                <!-- 這裡的選項會由系統自動載入 -->
-            </datalist>
 
             <!-- 預約編號 -->
             <div>
@@ -89,10 +84,13 @@
 
             <!-- 接送地址 -->
             <div>
-                <label class="bw-label">接送地址 <span class="text-xs font-normal text-gray-500">（請填寫完整包含社區名字）</span></label>
+                <label class="bw-label">接送地址 <span class="text-xs font-normal text-gray-500">（請選擇區域並填寫完整社區名字）</span></label>
                 <div class="flex gap-2">
-                    <input type="text" id="zipCode" list="zipCodeOptions" class="bw-input w-1/3 sm:w-1/4 px-2" placeholder="連線中..." required autocomplete="off">
-                    <input type="text" id="address" class="bw-input w-2/3 sm:w-3/4" placeholder="詳細地址" required>
+                    <!-- 改為強制下拉選單 -->
+                    <select id="zipCode" class="bw-input w-2/5 sm:w-1/3 px-1 text-sm sm:text-base cursor-pointer" required>
+                        <option value="" disabled selected>載入地區中...</option>
+                    </select>
+                    <input type="text" id="address" class="bw-input w-3/5 sm:w-2/3" placeholder="詳細地址" required>
                 </div>
             </div>
 
@@ -166,8 +164,11 @@
                                 <span class="font-bold">與去程地址相同</span>
                             </label>
                             <div id="returnAddressContainer" class="flex gap-2 hidden">
-                                <input type="text" id="returnZipCode" list="zipCodeOptions" class="bw-input w-1/3 sm:w-1/4 px-2" placeholder="連線中..." autocomplete="off">
-                                <input type="text" id="returnAddress" class="bw-input w-2/3 sm:w-3/4" placeholder="詳細地址">
+                                <!-- 改為強制下拉選單 -->
+                                <select id="returnZipCode" class="bw-input w-2/5 sm:w-1/3 px-1 text-sm sm:text-base cursor-pointer">
+                                    <option value="" disabled selected>選擇區域</option>
+                                </select>
+                                <input type="text" id="returnAddress" class="bw-input w-3/5 sm:w-2/3" placeholder="詳細地址">
                             </div>
                         </div>
                     </div>
@@ -442,7 +443,7 @@
         // ==========================================
         // API 網址 (請確認後端已正確發布)
         // ==========================================
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz7hB5D7XoIq0NWwnGiS55Ah0ls7F4pBm5Javn7tYeaqslvP18L4vMIT_qAkLr65v5x/exec";
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw9JScnDpiplEl72OZa6l3--71kgkWJP9k6PuautbFyqd7XyRDXWwmoUUVNiPCVpCYifg/exec";
 
         /* ========================
            1. 初始設定與 LIFF
@@ -455,7 +456,7 @@
             validateVehicleAndLuggage(); // 初始檢查
             toggleReturnSection(); // 初始檢查回程區塊
             
-            // 頁面載入時，向系統索取所有郵遞區號資料
+            // 頁面載入時，向系統索取所有區域資料並生成下拉選單
             fetchZipCodesFromGAS();
         });
 
@@ -599,7 +600,7 @@
                 validateVehicleAndLuggage();
             });
 
-            // 監聽郵遞區號與車型變化，觸發報價
+            // 監聽郵遞區號(地區下拉選單)與車型變化，觸發報價
             document.getElementById('zipCode').addEventListener('change', fetchPriceFromGAS);
             
             // 客製化下拉選單邏輯
@@ -666,9 +667,8 @@
            5. 核心邏輯與後端 API
            ======================== */
         
-        // 向系統抓取郵遞區號清單
+        // 向系統抓取區域清單並填充下拉選單 (<select>)
         async function fetchZipCodesFromGAS() {
-            const zipInput = document.getElementById('zipCode');
             try {
                 const cacheBuster = new Date().getTime();
                 const response = await fetch(`${GAS_API_URL}?action=getZipCodes&t=${cacheBuster}`, {
@@ -677,27 +677,28 @@
                 });
                 const result = await response.json();
                 if (result.status === "success" && result.data) {
-                    const dataList = document.getElementById('zipCodeOptions');
-                    dataList.innerHTML = '';
-                    result.data.forEach(zip => {
-                        const option = document.createElement('option');
-                        option.value = zip;
-                        dataList.appendChild(option);
-                    });
-                    zipInput.placeholder = "🔍 搜尋區號...";
+                    populateZipSelects(result.data);
                 }
             } catch (error) {
                 console.warn("連線失敗:", error);
-                zipInput.placeholder = "搜尋區域... (離線備用中)";
-                const fallbackZips = ["100台北市 中正區", "330桃園市 桃園區"];
-                const dataList = document.getElementById('zipCodeOptions');
-                dataList.innerHTML = '';
-                fallbackZips.forEach(zip => {
-                    const option = document.createElement('option');
-                    option.value = zip;
-                    dataList.appendChild(option);
-                });
+                // 離線備用資料 (模擬 B+C 欄合併的樣子)
+                const fallbackZips = ["台北市 中正區", "台北市 中山區", "桃園市 桃園區", "桃園市 大園區"];
+                populateZipSelects(fallbackZips);
             }
+        }
+
+        // 將陣列資料產生至 select 選項中
+        function populateZipSelects(dataList) {
+            const zipSelect = document.getElementById('zipCode');
+            const returnZipSelect = document.getElementById('returnZipCode');
+            
+            let optionsHTML = '<option value="" disabled selected>請選擇區域</option>';
+            dataList.forEach(zip => {
+                optionsHTML += `<option value="${zip}">${zip}</option>`;
+            });
+            
+            if (zipSelect) zipSelect.innerHTML = optionsHTML;
+            if (returnZipSelect) returnZipSelect.innerHTML = optionsHTML;
         }
 
         // 向系統抓取報價 (含來回雙倍邏輯)
@@ -879,7 +880,7 @@
                 { id: 'lineId', name: 'LINE ID' },
                 { id: 'passengerName', name: '乘車人姓名' },
                 { id: 'passengerPhone', name: '聯絡電話' },
-                { id: 'zipCode', name: '接送郵遞區號' },
+                { id: 'zipCode', name: '接送區域' },
                 { id: 'address', name: '接送詳細地址' },
                 { id: 'rideDate', name: '乘車日期' },
                 { id: 'rideHour', name: '乘車小時' },
