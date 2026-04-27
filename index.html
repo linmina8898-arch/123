@@ -112,13 +112,28 @@
 
             <!-- 預約類型 & 航班編號 -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+                <div class="relative" id="bookingDropdownContainer">
                     <label class="bw-label">預約類型</label>
-                    <select id="bookingType" class="bw-input" required>
-                        <option value="送機">送機</option>
-                        <option value="接機">接機 (只預約接機+$200)</option>
-                        <option value="回來">來回 (預約來回不加價)</option>
-                    </select>
+                    <input type="hidden" id="bookingType" value="送機">
+                    
+                    <div id="bookingSelectTrigger" class="bw-input cursor-pointer flex justify-between items-center bg-white">
+                        <span id="selectedBookingLabel" class="text-black">送機</span>
+                        <svg class="select-arrow w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+
+                    <div id="bookingOptionsList" class="hidden absolute left-0 right-0 z-40 bg-white border-2 border-black mt-[-2px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <div class="booking-option p-3 border-b border-gray-200 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="送機">
+                            送機
+                        </div>
+                        <div class="booking-option p-3 border-b border-gray-200 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="接機">
+                            接機 <span class="text-xs">(只預約接機+$200)</span>
+                        </div>
+                        <div class="booking-option p-3 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="回來">
+                            來回 <span class="text-xs">(預約來回不加價--接送地址人數行李都需一模一樣)</span>
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label class="bw-label">航班編號</label>
@@ -443,7 +458,7 @@
         // ==========================================
         // API 網址 (請確認後端已正確發布)
         // ==========================================
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw9JScnDpiplEl72OZa6l3--71kgkWJP9k6PuautbFyqd7XyRDXWwmoUUVNiPCVpCYifg/exec";
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0K_NwnZIzzksur4pqb3X4fHTOO4i0s32-8UDylYVXtQhnRsJruIkYRni962I68icY/exec";
 
         /* ========================
            1. 初始設定與 LIFF
@@ -580,11 +595,40 @@
             document.getElementById('returnHour').addEventListener('change', checkDateTime);
             document.getElementById('returnMinute').addEventListener('change', checkDateTime);
 
-            // 預約類型變更 - 檢查接機加價與顯示回程區塊
-            document.getElementById('bookingType').addEventListener('change', () => {
-                calculateSurcharges();
-                toggleReturnSection();
-                fetchPriceFromGAS(); // 觸發報價更新以套用雙倍邏輯
+            // 預約類型 - 客製化下拉選單邏輯 (支援括號字體縮小)
+            const bookingTrigger = document.getElementById('bookingSelectTrigger');
+            const bookingOptionsList = document.getElementById('bookingOptionsList');
+            const bookingContainer = document.getElementById('bookingDropdownContainer');
+            const bookingHiddenInput = document.getElementById('bookingType');
+            const bookingSelectedLabel = document.getElementById('selectedBookingLabel');
+
+            bookingTrigger.addEventListener('click', () => {
+                const isOpen = !bookingOptionsList.classList.contains('hidden');
+                if (isOpen) {
+                    bookingOptionsList.classList.add('hidden');
+                    bookingContainer.classList.remove('select-open');
+                } else {
+                    bookingOptionsList.classList.remove('hidden');
+                    bookingContainer.classList.add('select-open');
+                }
+            });
+
+            document.querySelectorAll('.booking-option').forEach(option => {
+                option.addEventListener('click', (e) => {
+                    const val = option.getAttribute('data-value');
+                    const labelHtml = option.innerHTML;
+                    
+                    bookingHiddenInput.value = val;
+                    bookingSelectedLabel.innerHTML = labelHtml;
+                    
+                    bookingOptionsList.classList.add('hidden');
+                    bookingContainer.classList.remove('select-open');
+                    
+                    // 觸發連動的報價及回程區塊邏輯
+                    calculateSurcharges();
+                    toggleReturnSection();
+                    fetchPriceFromGAS();
+                });
             });
 
             // 回程打勾選項切換顯示隱藏
@@ -603,7 +647,7 @@
             // 監聽郵遞區號(地區下拉選單)與車型變化，觸發報價
             document.getElementById('zipCode').addEventListener('change', fetchPriceFromGAS);
             
-            // 客製化下拉選單邏輯
+            // 客製化車型下拉選單邏輯
             const trigger = document.getElementById('customSelectTrigger');
             const optionsList = document.getElementById('customOptionsList');
             const container = document.getElementById('vehicleDropdownContainer');
@@ -646,6 +690,10 @@
                     optionsList.classList.add('hidden');
                     container.classList.remove('select-open');
                 }
+                if (!bookingContainer.contains(e.target)) {
+                    bookingOptionsList.classList.add('hidden');
+                    bookingContainer.classList.remove('select-open');
+                }
             });
 
             // 人數與行李變更 - 驗證車型與費用
@@ -669,21 +717,30 @@
         
         // 向系統抓取區域清單並填充下拉選單 (<select>)
         async function fetchZipCodesFromGAS() {
+            const fallbackZips = ["台北市 中正區", "台北市 中山區", "桃園市 桃園區", "桃園市 大園區 (備用資料)"];
             try {
                 const cacheBuster = new Date().getTime();
                 const response = await fetch(`${GAS_API_URL}?action=getZipCodes&t=${cacheBuster}`, {
                     method: 'GET',
                     redirect: 'follow'
                 });
+                
                 const result = await response.json();
-                if (result.status === "success" && result.data) {
+                
+                // 如果後端回傳成功，且有資料
+                if (result.status === "success" && result.data && result.data.length > 0) {
                     populateZipSelects(result.data);
+                } else {
+                    // 狀況：成功連到後端 API，但後端丟了錯誤（例：找不到「報價表」工作表）
+                    console.warn("後端回傳錯誤或資料為空:", result.message || "無資料");
+                    populateZipSelects(fallbackZips);
+                    showModal("系統提示：無法讀取雲端地區資料<br>（請檢查 Google 試算表是否已正確建立「報價表」分頁，且 B、C 欄有填寫資料）。<br><br>系統已暫時為您載入「備用區域選單」以供測試。");
                 }
             } catch (error) {
+                // 狀況：網路異常、或是 CORS 問題導致根本連不到後端
                 console.warn("連線失敗:", error);
-                // 離線備用資料 (模擬 B+C 欄合併的樣子)
-                const fallbackZips = ["台北市 中正區", "台北市 中山區", "桃園市 桃園區", "桃園市 大園區"];
                 populateZipSelects(fallbackZips);
+                showModal("系統提示：網路連線失敗，無法讀取雲端地區資料。<br><br>系統已暫時為您載入「備用區域選單」以供測試。");
             }
         }
 
@@ -739,7 +796,8 @@
                     priceInput.classList.replace('text-lg', 'text-3xl');
                     priceInput.classList.replace('text-gray-500', 'text-red-600');
                 } else {
-                    priceInput.value = "無此區報價，請手動確認拼寫或洽客服";
+                    // 加入錯誤提醒，把後端的錯誤原因印出來
+                    priceInput.value = data.message || "無此區報價，請手動確認拼寫或洽客服";
                 }
             } catch (error) {
                 console.warn("報價讀取失敗", error);
@@ -980,6 +1038,8 @@
                         // 重置車型標籤與回程區塊
                         document.getElementById('selectedVehicleLabel').innerHTML = "請選擇接送車型";
                         document.getElementById('selectedVehicleLabel').classList.replace('text-black', 'text-gray-500');
+                        document.getElementById('selectedBookingLabel').innerHTML = "送機";
+                        document.getElementById('bookingType').value = "送機";
                         toggleReturnSection();
                     }
                 } else {
