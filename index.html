@@ -389,7 +389,8 @@
                     </label>
                     <label class="flex items-center gap-3">
                         <input type="checkbox" id="extraNight" class="bw-checkbox" disabled>
-                        <span class="font-bold">夜間加成 22:00~05:59 (系統判斷 +$200)</span>
+                        <!-- 將夜間加成金額獨立出一個 id 以便動態更新 -->
+                        <span class="font-bold">夜間加成 22:00~05:59 (系統判斷 <span id="nightPriceDisplay">+$0</span>)</span>
                     </label>
                     <label class="flex items-center gap-3">
                         <input type="checkbox" id="extraPickup" class="bw-checkbox" disabled>
@@ -590,9 +591,12 @@
             });
             document.getElementById('rideMinute').addEventListener('change', checkDateTime);
 
-            // 回程日期與時間變更
+            // 回程日期與時間變更 (讓回程時間也能觸發加價計算)
             document.getElementById('returnDate').addEventListener('change', checkDateTime);
-            document.getElementById('returnHour').addEventListener('change', checkDateTime);
+            document.getElementById('returnHour').addEventListener('change', () => {
+                checkDateTime();
+                calculateSurcharges();
+            });
             document.getElementById('returnMinute').addEventListener('change', checkDateTime);
 
             // 預約類型 - 客製化下拉選單邏輯 (支援括號字體縮小)
@@ -782,13 +786,25 @@
                 if (data.status === "success" && data.price) {
                     let basePrice = parseInt(data.price);
                     if (isRoundTrip) basePrice *= 2;
+                    
                     const infants = parseInt(document.getElementById('infantCount').value) || 0;
                     let maxInfants = infants;
                     if (isRoundTrip && !document.getElementById('sameAsPax').checked) {
                         maxInfants = Math.max(infants, parseInt(document.getElementById('infantCountReturn').value) || 0);
                     }
                     if (maxInfants > 0) basePrice += (maxInfants * 200);
-                    if (document.getElementById('extraNight').checked) basePrice += 200;
+
+                    // 計算夜間加成總額
+                    let nightCount = 0;
+                    const h = parseInt(document.getElementById('rideHour').value);
+                    if (!isNaN(h) && (h >= 22 || h <= 5)) nightCount++;
+                    
+                    if (isRoundTrip) {
+                        const rh = parseInt(document.getElementById('returnHour').value);
+                        if (!isNaN(rh) && (rh >= 22 || rh <= 5)) nightCount++;
+                    }
+                    if (nightCount > 0) basePrice += (nightCount * 200);
+
                     if (document.getElementById('extraPickup').checked) basePrice += 200;
                     if (document.getElementById('extraSign').checked) basePrice += 200;
 
@@ -911,12 +927,28 @@
 
         // 加價判斷
         function calculateSurcharges() {
+            let nightCount = 0;
+            
+            // 檢查去程夜間
             const hourVal = document.getElementById('rideHour').value;
-            const chkNight = document.getElementById('extraNight');
             if (hourVal) {
                 const h = parseInt(hourVal);
-                chkNight.checked = (h >= 22 || h <= 5);
+                if (h >= 22 || h <= 5) nightCount++;
             }
+            
+            // 檢查回程夜間
+            if (document.getElementById('bookingType').value === '回來') {
+                const rHourVal = document.getElementById('returnHour').value;
+                if (rHourVal) {
+                    const rh = parseInt(rHourVal);
+                    if (rh >= 22 || rh <= 5) nightCount++;
+                }
+            }
+
+            // 更新夜間加成 Checkbox 狀態與金額文字
+            document.getElementById('extraNight').checked = (nightCount > 0);
+            document.getElementById('nightPriceDisplay').innerText = `+$${nightCount * 200}`;
+
             document.getElementById('extraPickup').checked = (document.getElementById('bookingType').value === '接機');
             
             const infants = parseInt(document.getElementById('infantCount').value) || 0;
