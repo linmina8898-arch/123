@@ -15,49 +15,143 @@
       --bg-light: #F8F9FA;
       --border-color: #EEEEEE;
       --accent-soft: #F9E6EE;
+      --discount-bg: #E6F4EA; 
+      --discount-text: #1E7E34; 
+      --night-bg: #FFF4E5;
+      --night-text: #B7791F;
     }
+    
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
     body {
       margin: 0; background: #FFFFFF; color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-      line-height: 1.5;
+      line-height: 1.4;
     }
+
     .page { max-width: 600px; margin: 0 auto; padding-bottom: 60px; }
-    .header { padding: 40px 24px; background: #FFFFFF; border-bottom: 4px solid var(--brand); }
-    .header .badge { display: inline-block; font-size: 13px; font-weight: 700; color: var(--brand); margin-bottom: 8px; letter-spacing: 1px; }
-    .header h1 { font-size: 24px; font-weight: 800; color: var(--brand); margin-bottom: 12px; }
-    .header p { font-size: 14px; color: var(--text-muted); font-weight: 500; }
-    .steps-wrapper { padding: 0 20px; margin-top: 24px; }
-    .steps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .step { padding: 10px; font-size: 12px; font-weight: 700; text-align: center; border-bottom: 2px solid var(--border-color); color: #BBB; }
+
+    .header { padding: 32px 20px 16px; background: #FFFFFF; text-align: center; }
+    .trust-tagline {
+      font-size: 12px; font-weight: 800; color: var(--brand); letter-spacing: 1px;
+      margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .trust-tagline::before, .trust-tagline::after {
+      content: ""; height: 1px; width: 12px; background: var(--brand); opacity: 0.3;
+    }
+    .header h1 { font-size: 22px; font-weight: 900; color: var(--text-main); margin-bottom: 4px; letter-spacing: -0.5px; }
+    .header p { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-bottom: 16px; }
+    .promo-banner {
+      background: var(--bg-light); border: 1px solid var(--border-color); color: var(--brand);
+      font-size: 13px; font-weight: 800; padding: 8px 16px; display: inline-block; border-radius: 999px;
+    }
+
+    .steps-wrapper { padding: 0 20px; margin-top: 12px; }
+    .steps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .step {
+      padding: 8px; font-size: 11px; font-weight: 700; text-align: center;
+      border-bottom: 2px solid var(--border-color); color: #BBB;
+    }
     .step.active { color: var(--brand); border-bottom-color: var(--brand); }
-    .section-card { margin: 24px 20px 0; }
-    .section-title { font-size: 16px; font-weight: 800; margin-bottom: 20px; padding-left: 12px; border-left: 4px solid var(--brand); }
-    .field { margin-bottom: 20px; }
-    label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 700; }
-    .input, .select, .textarea { width: 100%; height: 48px; border: 1px solid #DDD; border-radius: 4px; background: #FFF; padding: 0 12px; font-size: 15px; outline: none; transition: 0.2s; }
+
+    .section-card { margin: 24px 20px 0; padding: 0; }
+    .section-title {
+      font-size: 16px; font-weight: 800; color: var(--text-main);
+      margin-bottom: 16px; padding-left: 10px; border-left: 4px solid var(--brand);
+    }
+
+    .field { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 700; color: var(--text-main); }
+    .input, .select, .textarea {
+      width: 100%; height: 46px; border: 1px solid #DDD; border-radius: 4px;
+      background: #FFF; padding: 0 12px; font-size: 15px; color: var(--text-main);
+      outline: none; transition: border-color 0.2s;
+    }
     .input:focus, .select:focus { border-color: var(--brand); }
-    .textarea { height: 100px; padding: 12px; resize: none; }
-    .segmented { display: grid; grid-template-columns: 1fr 1fr 1fr; border: 1px solid var(--brand); border-radius: 4px; overflow: hidden; }
-    .segmented button { height: 42px; background: #FFF; color: var(--brand); font-weight: 700; border: none; }
+    .textarea { height: 90px; padding: 12px; resize: none; }
+
+    .segmented {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      border: 1px solid var(--brand); border-radius: 4px; overflow: hidden;
+    }
+    .segmented button {
+      height: 40px; background: #FFF; color: var(--brand); font-size: 14px;
+      font-weight: 700; border: none; cursor: pointer;
+    }
     .segmented button.active { background: var(--brand); color: #FFF; }
-    .price-panel { margin-top: 30px; padding: 24px; background: var(--bg-light); border-radius: 8px; text-align: center; }
-    .price-amount { font-size: 32px; font-weight: 900; color: var(--brand); }
-    .primary-btn { width: 100%; height: 52px; background: var(--brand); color: #FFF; border: none; border-radius: 4px; font-size: 16px; font-weight: 700; margin-top: 20px; }
-    .primary-btn:disabled { background: #CCC; }
-    .secondary-btn { width: 100%; height: 52px; background: #FFF; color: var(--brand); border: 1px solid var(--brand); border-radius: 4px; font-size: 16px; font-weight: 700; margin-top: 12px; }
-    .summary-box { background: var(--accent-soft); border-radius: 4px; padding: 16px; font-size: 14px; color: var(--brand-dark); font-weight: 600; line-height: 1.8; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .price-panel {
+      margin-top: 24px; padding: 20px; background: var(--bg-light);
+      border-radius: 8px; text-align: center;
+    }
+    .price-label { font-size: 12px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px; }
+    .price-amount { font-size: 30px; font-weight: 900; color: var(--brand); margin-bottom: 2px; }
+    .price-detail { font-size: 11px; color: var(--text-muted); font-weight: 700; }
+    
+    .night-hint {
+      display: inline-block; background: var(--night-bg); color: var(--night-text);
+      font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-top: 4px; font-weight: 800;
+    }
+
+    .primary-btn {
+      width: 100%; height: 50px; background: var(--brand); color: #FFF;
+      border: none; border-radius: 4px; font-size: 16px; font-weight: 700;
+      cursor: pointer; margin-top: 16px;
+    }
+    .primary-btn:disabled { background: #CCC; cursor: not-allowed; }
+    .secondary-btn {
+      width: 100%; height: 50px; background: #FFF; color: var(--brand);
+      border: 1px solid var(--brand); border-radius: 4px; font-size: 16px;
+      font-weight: 700; margin-top: 10px; cursor: pointer;
+    }
+
+    .summary-box {
+      background: var(--accent-soft); border-radius: 8px; padding: 16px;
+      font-size: 15px; color: var(--text-main); line-height: 1.8;
+      font-weight: 500; border: 1px solid var(--line);
+    }
+    .summary-label { color: var(--text-muted); font-weight: 600; width: 60px; display: inline-block; }
+    .summary-discount { 
+      background: var(--discount-bg); color: var(--discount-text); 
+      font-size: 12px; padding: 2px 8px; border-radius: 4px; 
+      font-weight: 800; margin-left: 8px;
+    }
+
+    /* 自訂提示彈窗樣式 (解決 alert() 無效問題) */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); 
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-content {
+      background: #FFF; width: 85%; max-width: 320px; border-radius: 12px;
+      padding: 24px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .modal-title { font-weight: 900; color: var(--brand); font-size: 18px; margin-bottom: 8px; }
+    .modal-text { font-size: 14px; color: var(--text-main); line-height: 1.6; margin-bottom: 20px; white-space: pre-wrap; }
+    .modal-btn { 
+      background: var(--brand); color: #FFF; border: none; padding: 10px 32px; 
+      border-radius: 6px; font-weight: 700; cursor: pointer;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .hidden { display: none !important; }
-    @media (max-width: 480px) { .grid-2 { grid-template-columns: 1fr; } .grid-2.mobile-row { grid-template-columns: 1fr 1fr; } }
+    
+    @media (max-width: 480px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-2.mobile-row { grid-template-columns: 1fr 1fr; }
+    }
   </style>
 </head>
 <body>
+
   <div class="page">
     <header class="header">
-      <div class="badge">合法租賃車｜拒絕白牌｜價格透明｜安全有保障</div>
-      <h1>📢 自助下單最快速！</h1>
-      <p>歡迎直接使用系統試算詢價，報價準確度達 9 成以上，價格透明不變動。</p>
+      <div class="trust-tagline">合法租賃車 ‧ 拒絕白牌 ‧ 價格透明 ‧ 安全保障</div>
+      <h1>自助下單 ‧ 即時報價</h1>
+      <p>報價準確度達 9 成，價格透明不變動</p>
+      <div class="promo-banner">
+        來回行程現折 $200 優惠中 <span>(須同相同條件)</span>
+      </div>
     </header>
 
     <div class="steps-wrapper">
@@ -72,6 +166,7 @@
       <input type="hidden" id="bookingId" />
       <input type="hidden" id="bookingType" value="送機" />
 
+      <!-- Step 1: Quote -->
       <section id="quoteSection" class="section-card">
         <h2 class="section-title">行程條件</h2>
         <div class="field">
@@ -79,7 +174,7 @@
           <div class="segmented" id="bookingTypeSeg">
             <button type="button" class="active" data-value="送機">送機</button>
             <button type="button" data-value="接機">接機</button>
-            <button type="button" data-value="回來">來回</button>
+            <button type="button" data-value="來回">來回</button>
           </div>
         </div>
         <div class="grid-2">
@@ -90,9 +185,9 @@
           <label>車型</label>
           <select id="vehicleType" class="select" required>
             <option value="" disabled selected>請選擇車型</option>
-            <option value="小車">小車｜2人2件</option>
-            <option value="休旅車">休旅車｜4人3件</option>
-            <option value="大車">大車｜6人6件</option>
+            <option value="小車(2人2件含登機箱)">小車(2人2件含登機箱)</option>
+            <option value="休旅車(3人3件含登機箱)">休旅車(3人3件含登機箱)</option>
+            <option value="大車(7人7件含登機箱)">大車(7人7件含登機箱)</option>
           </select>
         </div>
         <div class="grid-2 mobile-row">
@@ -105,46 +200,93 @@
         <div id="returnDateSection" class="hidden">
           <div class="grid-2 mobile-row">
             <div class="field"><label>回程日期</label><input type="date" id="returnDate" class="input" /></div>
-            <div class="field"><label>回程時間</label><div class="flex gap-1"><select id="returnHour" class="select"></select><select id="returnMinute" class="select"></select></div></div>
+            <div class="field">
+              <label>回程時間</label>
+              <div class="flex gap-1"><select id="returnHour" class="select"></select><select id="returnMinute" class="select"></select></div>
+            </div>
           </div>
         </div>
         <div class="grid-2 mobile-row">
           <div class="field"><label>安全座椅 (+$200)</label><select id="infantCount" class="select"><option value="0">不需要</option><option value="1">1 張</option><option value="2">2 張</option></select></div>
-          <div class="field flex items-center pt-6"><label class="flex items-center cursor-pointer"><input type="checkbox" id="extraSign" class="w-4 h-4 mr-2 accent-[#A20055]"><span class="text-sm font-bold">需要舉牌 (+$200)</span></label></div>
+          <div class="field flex items-center pt-6">
+            <label class="flex items-center cursor-pointer">
+              <input type="checkbox" id="extraSign" class="w-4 h-4 mr-2 accent-[#A20055]">
+              <span class="text-sm font-bold text-gray-700">需要舉牌 (+$200)</span>
+            </label>
+          </div>
         </div>
         <div class="price-panel">
           <div class="price-label">系統試算總金額</div>
           <div id="priceDisplay" class="price-amount">NT$ --</div>
-          <div id="priceSub" class="text-xs text-gray-500">請完成上方選項</div>
+          <div id="priceSub" class="price-detail">請完成上方選項</div>
+          <div id="nightHint" class="night-hint hidden">🌙 已包含夜間加成 $200 (22:00~04:59)</div>
           <input type="hidden" id="estimatedPrice" />
         </div>
         <button type="button" id="goBookingBtn" class="primary-btn" disabled>滿意價格，下一步填寫資料</button>
       </section>
 
+      <!-- Step 2: Details -->
       <section id="bookingSection" class="section-card hidden">
+        <h2 class="section-title">預約報價摘要</h2>
+        <div class="summary-box mb-6" id="quoteSummary"></div>
+
+        <h2 class="section-title">乘客與行李詳情</h2>
+        <div class="grid-2 mobile-row">
+          <div class="field"><label>大人人數</label><select id="adultCount" class="select"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+          <div class="field"><label>小孩 (12歲以下)</label><select id="childCount" class="select"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+        </div>
+        <div class="grid-2 mobile-row">
+          <div class="field"><label>托運行李 (24-29吋)</label><select id="checkedCount" class="select"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+          <div class="field"><label>登機箱 (20吋)</label><select id="carryOnCount" class="select"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+        </div>
+
         <h2 class="section-title">聯絡人資料</h2>
-        <div class="summary-box mb-4" id="quoteSummary"></div>
-        <div class="field"><label>LINE ID</label><input type="text" id="lineId" class="input" required /></div>
+        <div class="field"><label>LINE ID</label><input type="text" id="lineId" class="input" placeholder="用於客服對接" required /></div>
         <div class="grid-2 mobile-row">
           <div class="field"><label>姓名</label><input type="text" id="passengerName" class="input" required /></div>
           <div class="field"><label>稱謂</label><select id="passengerTitle" class="select"><option>先生</option><option>小姐</option></select></div>
         </div>
-        <div class="field"><label>手機號碼</label><input type="tel" id="passengerPhone" class="input" required /></div>
-        <div class="field"><label>詳細接送地址</label><input type="text" id="address" class="input" required /></div>
+        <div class="field"><label>手機號碼</label><input type="tel" id="passengerPhone" class="input" placeholder="0900-000-000" required /></div>
+        <div class="field"><label>詳細接送地址</label><input type="text" id="address" class="input" placeholder="路名門牌、大樓名稱" required /></div>
+        
         <div class="grid-2 mobile-row">
-          <div class="field"><label>航班編號</label><input type="text" id="flightNumber" class="input" required /></div>
-          <div class="field"><label>付款方式</label><select id="paymentMethod" class="select"><option>現金 / 轉帳</option><option>街口 / 全支付</option></select></div>
+          <div class="field"><label>航班編號</label><input type="text" id="flightNumber" class="input" placeholder="例: BR123" required /></div>
+          <div class="field">
+            <label>付款方式</label>
+            <select id="paymentMethod" class="select">
+              <option value="現金">現金</option>
+              <option value="轉帳">轉帳</option>
+              <option value="街口">街口</option>
+            </select>
+          </div>
         </div>
-        <div id="returnFlightSection" class="hidden field"><label>回程航班</label><input type="text" id="returnFlightNumber" class="input" /></div>
-        <div class="field"><label>備註需求</label><textarea id="remarks" class="textarea"></textarea></div>
-        <button type="button" id="submitBtn" class="primary-btn">確認預約</button>
-        <button type="button" id="backQuoteBtn" class="secondary-btn">返回修改</button>
+
+        <div id="returnFlightSection" class="hidden field"><label>回程航班編號</label><input type="text" id="returnFlightNumber" class="input" placeholder="例: BR124" /></div>
+        <div class="field"><label>備註需求</label><textarea id="remarks" class="textarea" placeholder="例如：胖胖箱、寵物等需求"></textarea></div>
+        
+        <button type="button" id="submitBtn" class="primary-btn">確認預約資料</button>
+        <button type="button" id="backQuoteBtn" class="secondary-btn">返回修改條件</button>
       </section>
 
+      <!-- Step 3: Success -->
       <section id="doneSection" class="section-card hidden">
-        <div class="text-center py-10"><div class="text-6xl mb-4" style="color: var(--brand)">✓</div><h2 class="text-2xl font-black mb-2">預約成功</h2><div class="summary-box my-6" id="doneSummary"></div><p class="text-gray-500 text-sm">客服將儘速透過 LINE 與您確認。</p></div>
+        <div class="text-center py-10">
+          <div class="text-6xl mb-4" style="color: var(--brand)">✓</div>
+          <h2 class="text-2xl font-black mb-2">預約成功送出</h2>
+          <div class="summary-box my-6" id="doneSummary"></div>
+          <p class="text-gray-500 text-sm">客服將儘速透過 LINE 與您聯繫確認。<br>請保持通訊順暢。</p>
+        </div>
       </section>
     </form>
+  </div>
+
+  <!-- 自訂提示彈窗 -->
+  <div id="msgModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div id="msgTitle" class="modal-title">系統提示</div>
+      <div id="msgText" class="modal-text"></div>
+      <button type="button" class="modal-btn" onclick="closeMsg()">確定</button>
+    </div>
   </div>
 
   <script>
@@ -152,8 +294,23 @@
     const LIFF_ID = "2009792282-I5YaiFVf";
     let countyMap = {}; let specialDates = []; let isCalculating = false;
 
+    // 車型載重限制
+    const VEHICLE_LIMITS = {
+      "小車": { pax: 2, luggage: 2 },
+      "休旅車": { pax: 3, luggage: 3 },
+      "大車": { pax: 7, luggage: 7 }
+    };
+
+    function showMsg(text, title = "系統提示") {
+      document.getElementById("msgTitle").innerText = title;
+      document.getElementById("msgText").innerText = text;
+      document.getElementById("msgModal").classList.remove("hidden");
+    }
+    function closeMsg() { document.getElementById("msgModal").classList.add("hidden"); }
+
     document.addEventListener("DOMContentLoaded", async () => {
       initTimeSelectors(); initBookingId(); await fetchSettings(); liff.init({ liffId: LIFF_ID }); bindEvents();
+      setupInputFormatters();
     });
 
     async function fetchSettings() {
@@ -174,6 +331,22 @@
       } catch(e) { document.getElementById("county").innerHTML = '<option value="">載入失敗</option>'; }
     }
 
+    function setupInputFormatters() {
+      ["flightNumber", "returnFlightNumber"].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.oninput = (e) => { e.target.value = e.target.value.toUpperCase(); };
+      });
+      const phoneInput = document.getElementById("passengerPhone");
+      if(phoneInput) {
+        phoneInput.oninput = (e) => {
+          let v = e.target.value.replace(/\D/g, '').slice(0, 10);
+          if (v.length > 7) v = v.slice(0, 4) + '-' + v.slice(4, 7) + '-' + v.slice(7);
+          else if (v.length > 4) v = v.slice(0, 4) + '-' + v.slice(4);
+          e.target.value = v;
+        };
+      }
+    }
+
     function bindEvents() {
       document.getElementById("county").onchange = function() {
         const zipSelect = document.getElementById("zipCode"); zipSelect.disabled = false;
@@ -184,7 +357,7 @@
         btn.onclick = () => {
           document.querySelectorAll("#bookingTypeSeg button").forEach(b => b.classList.remove("active")); btn.classList.add("active");
           document.getElementById("bookingType").value = btn.dataset.value;
-          const isRound = btn.dataset.value === "回來";
+          const isRound = btn.dataset.value === "來回";
           document.getElementById("returnDateSection").classList.toggle("hidden", !isRound);
           document.getElementById("returnFlightSection").classList.toggle("hidden", !isRound);
           calculate();
@@ -202,51 +375,130 @@
       const zip = document.getElementById("zipCode").value; const veh = document.getElementById("vehicleType").value;
       const date = document.getElementById("rideDate").value; const hour = document.getElementById("rideHour").value;
       const type = document.getElementById("bookingType").value;
-      if(!zip || !veh || !date || !hour) return;
-      if(isCalculating) return; isCalculating = true;
-      document.getElementById("priceDisplay").innerText = "試算中...";
+      const display = document.getElementById("priceDisplay"); const btn = document.getElementById("goBookingBtn"); const nightHint = document.getElementById("nightHint");
+      
+      if(!zip || !veh || !date || !hour) { display.innerText = "NT$ --"; btn.disabled = true; nightHint.classList.add("hidden"); return; }
+      
+      if (type === "來回") {
+        const rDate = document.getElementById("returnDate").value; const rHour = document.getElementById("returnHour").value;
+        if (!rDate || !rHour) { display.innerText = "請填寫回程資訊"; btn.disabled = true; return; }
+        const isOutNight = (parseInt(hour) >= 22 || parseInt(hour) <= 4);
+        const isRetNight = (parseInt(rHour) >= 22 || parseInt(rHour) <= 4);
+        if (isOutNight !== isRetNight) {
+          display.innerText = "時段條件不同"; document.getElementById("priceSub").innerText = "因其中一行程有夜間加價，請分開預約或連繫客服。";
+          btn.disabled = true; nightHint.classList.add("hidden"); return;
+        }
+      }
+
+      if(isCalculating) return; isCalculating = true; display.innerText = "試算中...";
+      
       try {
         const res = await fetch(`${GAS_URL}?action=getPrice&zipCode=${encodeURIComponent(zip)}&vehicleType=${encodeURIComponent(veh)}`);
         const result = await res.json();
         if(result.status === "success") {
           let base = parseInt(result.price); let extra = 0; let r = [];
-          if(type === "接機") { extra += 200; r.push("接機+200"); }
-          if(parseInt(hour) >= 22 || parseInt(hour) <= 5) { extra += 200; r.push("夜間+200"); }
+          if(type === "接機" || type === "來回") { extra += 200; r.push("接機+200"); }
+          const isNight = (parseInt(hour) >= 22 || parseInt(hour) <= 4);
+          if(isNight) { extra += 200; r.push("去程夜間+200"); }
+          if (type === "來回" && (parseInt(document.getElementById("returnHour").value) >= 22 || parseInt(document.getElementById("returnHour").value) <= 4)) {
+            extra += 200; r.push("回程夜間+200");
+          }
           const sd = specialDates.find(d => d.date === date);
           if(sd) { extra += parseInt(sd.surcharge); r.push(`${sd.reason}+${sd.surcharge}`); }
           const infants = parseInt(document.getElementById("infantCount").value);
           if(infants > 0) { extra += infants * 200; r.push(`座椅+${infants*200}`); }
           if(document.getElementById("extraSign").checked) { extra += 200; r.push("舉牌+200"); }
-          let total = (type === "回來") ? (base * 2) + extra : base + extra;
-          document.getElementById("priceDisplay").innerText = `NT$ ${total.toLocaleString()}`;
+          let total = (type === "來回") ? (base * 2) + extra - 200 : base + extra;
+          display.innerText = `NT$ ${total.toLocaleString()}`;
           document.getElementById("estimatedPrice").value = `NT$ ${total.toLocaleString()}`;
-          document.getElementById("priceSub").innerText = (type === "回來" ? "【來回雙趟】" : "") + (r.length ? `含：${r.join("、")}` : "基礎報價");
-          document.getElementById("goBookingBtn").disabled = false;
+          let subText = r.length ? `含：${r.join("、")}` : "基礎報價";
+          if (type === "來回") subText += "、來回折抵-200";
+          document.getElementById("priceSub").innerText = subText;
+          if (isNight) nightHint.classList.remove("hidden"); else nightHint.classList.add("hidden");
+          btn.disabled = false;
         }
-      } finally { isCalculating = false; }
+      } catch(e) { display.innerText = "連線失敗"; } finally { isCalculating = false; }
+    }
+
+    function validateCapacity() {
+      const vehFull = document.getElementById("vehicleType").value;
+      let vehKey = "小車";
+      if(vehFull.includes("休旅車")) vehKey = "休旅車";
+      else if(vehFull.includes("大車")) vehKey = "大車";
+
+      const limit = VEHICLE_LIMITS[vehKey];
+      const totalPax = parseInt(document.getElementById("adultCount").value) + parseInt(document.getElementById("childCount").value);
+      const totalLug = parseInt(document.getElementById("checkedCount").value) + parseInt(document.getElementById("carryOnCount").value);
+
+      if(totalPax > limit.pax) {
+        showMsg(`【人數超出限制】\n您選擇的「${vehKey}」最多載 ${limit.pax} 人。\n目前填寫總人數為 ${totalPax} 人，請重新調整車型或人數。`);
+        return false;
+      }
+      if(totalLug > limit.luggage) {
+        showMsg(`【行李超出限制】\n您選擇的「${vehKey}」最多載 ${limit.luggage} 件行李。\n目前填寫總件數為 ${totalLug} 件，請重新調整車型或行李量。`);
+        return false;
+      }
+      return true;
     }
 
     async function submit() {
-      const btn = document.getElementById("submitBtn"); btn.disabled = true; btn.innerText = "傳送中...";
+      if(!validateCapacity()) return;
+
+      const lineId = document.getElementById("lineId").value.trim();
+      const pName = document.getElementById("passengerName").value.trim();
+      const pPhone = document.getElementById("passengerPhone").value.trim();
+      const addr = document.getElementById("address").value.trim();
+      const flight = document.getElementById("flightNumber").value.trim();
+      const type = document.getElementById("bookingType").value;
+      const retFlight = document.getElementById("returnFlightNumber").value.trim();
+
+      if(!lineId) { showMsg("請填寫您的 LINE ID。"); return; }
+      if(!pName) { showMsg("請填寫乘車人姓名。"); return; }
+      if(pPhone.length < 12) { showMsg("請填寫正確的 10 碼手機號碼。"); return; }
+      if(!addr) { showMsg("請填寫詳細接送地址。"); return; }
+      if(!flight) { showMsg("請填寫航班編號。"); return; }
+      if(type === "來回" && !retFlight) { showMsg("請填寫回程航班編號。"); return; }
+
+      const btn = document.getElementById("submitBtn"); 
+      btn.disabled = true; btn.innerText = "傳送中...";
+      
       const payload = {
         action: "submitBooking", bookingId: document.getElementById("bookingId").value,
-        passengerName: document.getElementById("passengerName").value + " " + document.getElementById("passengerTitle").value,
-        passengerPhone: document.getElementById("passengerPhone").value, address: document.getElementById("zipCode").value + " " + document.getElementById("address").value,
+        passengerName: pName + " " + document.getElementById("passengerTitle").value,
+        passengerPhone: pPhone, address: document.getElementById("zipCode").value + " " + addr,
         rideDate: document.getElementById("rideDate").value, rideTime: document.getElementById("rideHour").value + ":" + document.getElementById("rideMinute").value,
-        bookingType: document.getElementById("bookingType").value, flightNumber: document.getElementById("flightNumber").value,
+        bookingType: type, flightNumber: flight,
         vehicleType: document.getElementById("vehicleType").value, estimatedPrice: document.getElementById("estimatedPrice").value,
         remarks: document.getElementById("remarks").value, payment: document.getElementById("paymentMethod").value,
         returnDate: document.getElementById("returnDate").value || "", returnTime: document.getElementById("returnHour").value ? (document.getElementById("returnHour").value + ":" + document.getElementById("returnMinute").value) : "",
-        returnFlight: document.getElementById("returnFlightNumber").value || "", lineId: document.getElementById("lineId").value || "N/A"
+        returnFlight: retFlight, lineId: lineId,
+        pax: `大人:${document.getElementById("adultCount").value}, 小孩:${document.getElementById("childCount").value}`,
+        luggage: `托運:${document.getElementById("checkedCount").value}, 登機箱:${document.getElementById("carryOnCount").value}`
       };
+
       try {
-        const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+        const res = await fetch(GAS_URL, { 
+          method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload) 
+        });
         const resData = await res.json();
         if(resData.status === "success") {
-          setStep(3); document.getElementById("doneSummary").innerHTML = `單號：${payload.bookingId}<br>金額：${payload.estimatedPrice}`;
-          if(liff.isInClient()) liff.sendMessages([{ type: 'text', text: `【預約成功】\n單號：${payload.bookingId}\n時間：${payload.rideDate} ${payload.rideTime}\n金額：${payload.estimatedPrice}` }]);
-        }
-      } catch(e) { btn.disabled = false; btn.innerText = "確認預約"; }
+          setStep(3); 
+          document.getElementById("doneSummary").innerHTML = `單號：<b>${payload.bookingId}</b><br>金額：<b>${payload.estimatedPrice}</b>`;
+          if(liff.isInClient()) {
+            const msgs = [];
+            if(type === "來回") {
+              msgs.push({ type: 'text', text: `【去程預約成功】\n單號：${payload.bookingId}-1\n類型：來回(去)\n時間：${payload.rideDate} ${payload.rideTime}\n航班：${payload.flightNumber}\n金額：${payload.estimatedPrice}\n地址：${payload.address}` });
+              msgs.push({ type: 'text', text: `【回程預約成功】\n單號：${payload.bookingId}-2\n類型：來回(回)\n時間：${payload.returnDate} ${payload.returnTime}\n航班：${payload.returnFlight}\n金額：${payload.estimatedPrice}\n地址：${payload.address}` });
+            } else {
+              msgs.push({ type: 'text', text: `【預約成功】\n單號：${payload.bookingId}\n時間：${payload.rideDate} ${payload.rideTime}\n金額：${payload.estimatedPrice}\n地址：${payload.address}` });
+            }
+            liff.sendMessages(msgs);
+          }
+        } else { throw new Error(resData.message); }
+      } catch(e) { 
+        showMsg("傳送失敗，請稍後再試。原因：" + e.message);
+        btn.disabled = false; btn.innerText = "確認預約資料"; 
+      }
     }
 
     function initTimeSelectors() {
@@ -254,7 +506,12 @@
       let m = '<option value="" disabled selected>分</option>'; for(let i=0;i<60;i+=5) m+=`<option value="${i.toString().padStart(2,'0')}">${i.toString().padStart(2,'0')}</option>`;
       ["rideHour","returnHour"].forEach(id => document.getElementById(id).innerHTML = h); ["rideMinute","returnMinute"].forEach(id => document.getElementById(id).innerHTML = m);
     }
-    function initBookingId() { document.getElementById("bookingId").value = "ANS" + new Date().getTime().toString().slice(-8); }
+
+    function initBookingId() {
+      const random8 = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
+      document.getElementById("bookingId").value = "123V" + random8;
+    }
+
     function setStep(s) {
       document.querySelectorAll(".step").forEach(el => el.classList.remove("active"));
       document.getElementById("quoteSection").classList.add("hidden"); document.getElementById("bookingSection").classList.add("hidden"); document.getElementById("doneSection").classList.add("hidden");
@@ -264,7 +521,17 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function updateSummary() {
-      document.getElementById("quoteSummary").innerHTML = `行程：${document.getElementById("bookingType").value} ｜ 地區：${document.getElementById("zipCode").value}<br>預估金額：<span style="color: var(--brand)">${document.getElementById("estimatedPrice").value}</span>`;
+      const type = document.getElementById("bookingType").value; const zip = document.getElementById("zipCode").value; const price = document.getElementById("estimatedPrice").value; const vehicle = document.getElementById("vehicleType").value;
+      document.getElementById("quoteSummary").innerHTML = `
+        <div class="flex flex-col gap-2">
+          <div><span class="summary-label">行程：</span><span>${type}</span>${type === "來回" ? '<span class="summary-discount">已享折 $200</span>' : ''}</div>
+          <div><span class="summary-label">地區：</span><span>${zip}</span></div>
+          <div><span class="summary-label">車型：</span><span>${vehicle}</span></div>
+          <div class="mt-2 pt-2 border-t border-pink-200">
+            <span class="summary-label">預估金額：</span>
+            <div class="text-2xl font-black mt-1" style="color: var(--brand)">${price}</div>
+          </div>
+        </div>`;
     }
   </script>
 </body>
