@@ -1,1089 +1,271 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>123機場接送預約表單</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- LINE LIFF SDK -->
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        /* 客製化黑白風格與表單元素 */
-        body { background-color: #ffffff; color: #000000; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-        .bw-input { width: 100%; border: 2px solid #000; padding: 0.75rem; background-color: #fff; color: #000; outline: none; transition: all 0.2s; border-radius: 0; }
-        .bw-input:focus { box-shadow: 0 0 0 3px rgba(0,0,0,0.2); }
-        .bw-input:disabled { background-color: #f3f4f6; color: #6b7280; cursor: not-allowed; border-color: #9ca3af; }
-        .bw-label { display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; }
-        .bw-btn { display: inline-block; width: 100%; background-color: #000; color: #fff; font-weight: 700; text-align: center; padding: 1rem; border: 2px solid #000; cursor: pointer; transition: all 0.2s; border-radius: 0; }
-        .bw-btn:hover { background-color: #333; }
-        .bw-btn:disabled { background-color: #ccc; border-color: #ccc; cursor: not-allowed; }
-        .bw-checkbox { appearance: none; width: 1.25rem; height: 1.25rem; border: 2px solid #000; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 0; }
-        .bw-checkbox:checked { background-color: #000; }
-        .bw-checkbox:checked::after { content: "✓"; color: #fff; font-size: 0.9rem; font-weight: bold; }
-        .bw-checkbox:disabled { border-color: #9ca3af; background-color: #f3f4f6; cursor: not-allowed; }
-        .bw-checkbox:disabled:checked { background-color: #9ca3af; }
-        
-        /* 隱藏預設的數字上下箭頭 */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-
-        /* 客製選單旋轉箭頭 */
-        .select-arrow { transition: transform 0.3s; }
-        .select-open .select-arrow { transform: rotate(180deg); }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>機場接送｜自助報價預約系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    :root {
+      --brand: #A20055;
+      --brand-dark: #7A0030;
+      --text-main: #333333;
+      --text-muted: #666666;
+      --bg-light: #F8F9FA;
+      --border-color: #EEEEEE;
+      --accent-soft: #F9E6EE;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0; background: #FFFFFF; color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.5;
+    }
+    .page { max-width: 600px; margin: 0 auto; padding-bottom: 60px; }
+    .header { padding: 40px 24px; background: #FFFFFF; border-bottom: 4px solid var(--brand); }
+    .header .badge { display: inline-block; font-size: 13px; font-weight: 700; color: var(--brand); margin-bottom: 8px; letter-spacing: 1px; }
+    .header h1 { font-size: 24px; font-weight: 800; color: var(--brand); margin-bottom: 12px; }
+    .header p { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+    .steps-wrapper { padding: 0 20px; margin-top: 24px; }
+    .steps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .step { padding: 10px; font-size: 12px; font-weight: 700; text-align: center; border-bottom: 2px solid var(--border-color); color: #BBB; }
+    .step.active { color: var(--brand); border-bottom-color: var(--brand); }
+    .section-card { margin: 24px 20px 0; }
+    .section-title { font-size: 16px; font-weight: 800; margin-bottom: 20px; padding-left: 12px; border-left: 4px solid var(--brand); }
+    .field { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 700; }
+    .input, .select, .textarea { width: 100%; height: 48px; border: 1px solid #DDD; border-radius: 4px; background: #FFF; padding: 0 12px; font-size: 15px; outline: none; transition: 0.2s; }
+    .input:focus, .select:focus { border-color: var(--brand); }
+    .textarea { height: 100px; padding: 12px; resize: none; }
+    .segmented { display: grid; grid-template-columns: 1fr 1fr 1fr; border: 1px solid var(--brand); border-radius: 4px; overflow: hidden; }
+    .segmented button { height: 42px; background: #FFF; color: var(--brand); font-weight: 700; border: none; }
+    .segmented button.active { background: var(--brand); color: #FFF; }
+    .price-panel { margin-top: 30px; padding: 24px; background: var(--bg-light); border-radius: 8px; text-align: center; }
+    .price-amount { font-size: 32px; font-weight: 900; color: var(--brand); }
+    .primary-btn { width: 100%; height: 52px; background: var(--brand); color: #FFF; border: none; border-radius: 4px; font-size: 16px; font-weight: 700; margin-top: 20px; }
+    .primary-btn:disabled { background: #CCC; }
+    .secondary-btn { width: 100%; height: 52px; background: #FFF; color: var(--brand); border: 1px solid var(--brand); border-radius: 4px; font-size: 16px; font-weight: 700; margin-top: 12px; }
+    .summary-box { background: var(--accent-soft); border-radius: 4px; padding: 16px; font-size: 14px; color: var(--brand-dark); font-weight: 600; line-height: 1.8; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .hidden { display: none !important; }
+    @media (max-width: 480px) { .grid-2 { grid-template-columns: 1fr; } .grid-2.mobile-row { grid-template-columns: 1fr 1fr; } }
+  </style>
 </head>
-<body class="antialiased pb-12">
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="badge">合法租賃車｜拒絕白牌｜價格透明｜安全有保障</div>
+      <h1>📢 自助下單最快速！</h1>
+      <p>歡迎直接使用系統試算詢價，報價準確度達 9 成以上，價格透明不變動。</p>
+    </header>
 
-    <!-- 表單容器 -->
-    <div class="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8 mt-4">
-        
-        <!-- 抬頭 -->
-        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight border-b-4 border-black pb-4 mb-8 text-center uppercase">
-            123機場接送
-        </h1>
-
-        <!-- 加入 novalidate 阻擋瀏覽器預設的報錯氣泡，改用我們自訂的 Modal -->
-        <form id="bookingForm" class="space-y-6" novalidate>
-
-            <!-- 預約編號 -->
-            <div>
-                <label class="bw-label">預約編號</label>
-                <input type="text" id="bookingId" class="bw-input font-mono" readonly>
-            </div>
-
-            <!-- LINE 暱稱 (隱藏，僅供系統紀錄) -->
-            <input type="hidden" id="lineName" value="載入中...">
-
-            <!-- LINE ID (供客人填寫) -->
-            <div>
-                <label class="bw-label">LINE ID <span class="text-xs font-normal text-gray-500">（以利客服即時聯絡您）</span></label>
-                <input type="text" id="lineId" class="bw-input" placeholder="請填寫您的 LINE ID" required>
-            </div>
-
-            <!-- 乘車人姓名 -->
-            <div class="grid grid-cols-3 gap-2">
-                <div class="col-span-2">
-                    <label class="bw-label">乘車人姓名</label>
-                    <input type="text" id="passengerName" class="bw-input" required placeholder="請填寫全名">
-                </div>
-                <div class="col-span-1">
-                    <label class="bw-label">稱謂</label>
-                    <select id="passengerTitle" class="bw-input">
-                        <option value="先生">先生</option>
-                        <option value="小姐">小姐</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 乘車人電話 -->
-            <div>
-                <label class="bw-label">聯絡電話</label>
-                <input type="tel" id="passengerPhone" class="bw-input font-mono tracking-wider" required placeholder="0900-000-000">
-            </div>
-
-            <!-- 接送地址 -->
-            <div>
-                <label class="bw-label">接送地址 <span class="text-xs font-normal text-gray-500">（請選擇區域並填寫完整社區名字）</span></label>
-                <div class="flex gap-2">
-                    <!-- 改為強制下拉選單 -->
-                    <select id="zipCode" class="bw-input w-2/5 sm:w-1/3 px-1 text-sm sm:text-base cursor-pointer" required>
-                        <option value="" disabled selected>載入地區中...</option>
-                    </select>
-                    <input type="text" id="address" class="bw-input w-3/5 sm:w-2/3" placeholder="詳細地址" required>
-                </div>
-            </div>
-
-            <!-- 乘車日期與時間 -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="bw-label">乘車日期</label>
-                    <input type="date" id="rideDate" class="bw-input" required>
-                </div>
-                <div>
-                    <label class="bw-label">乘車時間</label>
-                    <div class="flex gap-2">
-                        <select id="rideHour" class="bw-input" required></select>
-                        <span class="flex items-center font-bold">:</span>
-                        <select id="rideMinute" class="bw-input" required></select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 預約類型 & 航班編號 -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="relative" id="bookingDropdownContainer">
-                    <label class="bw-label">預約類型</label>
-                    <input type="hidden" id="bookingType" value="送機">
-                    
-                    <div id="bookingSelectTrigger" class="bw-input cursor-pointer flex justify-between items-center bg-white">
-                        <span id="selectedBookingLabel" class="text-black">送機</span>
-                        <svg class="select-arrow w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </div>
-
-                    <div id="bookingOptionsList" class="hidden absolute left-0 right-0 z-40 bg-white border-2 border-black mt-[-2px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <div class="booking-option p-3 border-b border-gray-200 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="送機">
-                            送機
-                        </div>
-                        <div class="booking-option p-3 border-b border-gray-200 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="接機">
-                            接機 <span class="text-xs">(只預約接機+$200)</span>
-                        </div>
-                        <div class="booking-option p-3 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="回來">
-                            來回 <span class="text-xs">(預約來回不加價--接送地址人數行李都需一模一樣)</span>
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <label class="bw-label">航班編號</label>
-                    <input type="text" id="flightNumber" class="bw-input font-mono" placeholder="例: BR123" required>
-                </div>
-            </div>
-
-            <!-- 接送機場 (固定) -->
-            <div>
-                <label class="bw-label">接送機場</label>
-                <input type="text" class="bw-input" value="桃園機場" readonly>
-            </div>
-
-            <!-- 回程資訊區塊 (預設隱藏) -->
-            <div id="returnTripSection" class="hidden border-2 border-black p-4 mt-6 bg-gray-50">
-                <label class="bw-label text-lg border-b-2 border-black pb-2 mb-4">回程預約資訊</label>
-                <div class="space-y-4">
-                    <!-- 回程日期與時間 -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="bw-label">回程日期</label>
-                            <input type="date" id="returnDate" class="bw-input">
-                        </div>
-                        <div>
-                            <label class="bw-label">回程時間</label>
-                            <div class="flex gap-2">
-                                <select id="returnHour" class="bw-input"></select>
-                                <span class="flex items-center font-bold">:</span>
-                                <select id="returnMinute" class="bw-input"></select>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- 回程航班與地址 -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="bw-label">回程航班編號</label>
-                            <input type="text" id="returnFlightNumber" class="bw-input font-mono" placeholder="例: BR124">
-                        </div>
-                        <div class="sm:col-span-2">
-                            <label class="bw-label mb-2">回程接送地址</label>
-                            <label class="flex items-center gap-2 mb-3 cursor-pointer w-max">
-                                <input type="checkbox" id="sameAsDeparture" class="bw-checkbox" checked>
-                                <span class="font-bold">與去程地址相同</span>
-                            </label>
-                            <div id="returnAddressContainer" class="flex gap-2 hidden">
-                                <!-- 改為強制下拉選單 -->
-                                <select id="returnZipCode" class="bw-input w-2/5 sm:w-1/3 px-1 text-sm sm:text-base cursor-pointer">
-                                    <option value="" disabled selected>選擇區域</option>
-                                </select>
-                                <input type="text" id="returnAddress" class="bw-input w-3/5 sm:w-2/3" placeholder="詳細地址">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 回程人數 -->
-                    <div class="sm:col-span-2 mt-4 border-t-2 border-gray-300 pt-4">
-                        <label class="bw-label mb-2">回程乘車人數</label>
-                        <label class="flex items-center gap-2 mb-3 cursor-pointer w-max">
-                            <input type="checkbox" id="sameAsPax" class="bw-checkbox" checked>
-                            <span class="font-bold">與去程人數相同</span>
-                        </label>
-                        <div id="returnPaxContainer" class="grid grid-cols-3 gap-2 hidden bg-white p-3 border-2 border-black">
-                            <div>
-                                <label class="text-sm font-bold block mb-1">大人</label>
-                                <select id="adultCountReturn" class="bw-input text-center passenger-input-return">
-                                    <option value="1" selected>1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                    <option value="6">6</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-sm font-bold block mb-1">4~12歲小孩</label>
-                                <select id="childCountReturn" class="bw-input text-center passenger-input-return">
-                                    <option value="0" selected>0</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-sm font-bold block mb-1">4歲以下幼兒</label>
-                                <select id="infantCountReturn" class="bw-input text-center passenger-input-return">
-                                    <option value="0" selected>0</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 回程行李 -->
-                    <div class="sm:col-span-2 mt-2">
-                        <label class="bw-label mb-2">回程行李件數</label>
-                        <label class="flex items-center gap-2 mb-3 cursor-pointer w-max">
-                            <input type="checkbox" id="sameAsLuggage" class="bw-checkbox" checked>
-                            <span class="font-bold">與去程行李相同</span>
-                        </label>
-                        <div id="returnLuggageContainer" class="grid grid-cols-2 gap-4 hidden bg-white p-3 border-2 border-black">
-                            <div>
-                                <label class="text-sm font-bold block mb-1">登機箱 (件)</label>
-                                <select id="carryOnCountReturn" class="bw-input text-center luggage-input-return">
-                                    <option value="0" selected>0</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                    <option value="6">6</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-sm font-bold block mb-1">託運行李 21~29吋</label>
-                                <select id="checkedCountReturn" class="bw-input text-center luggage-input-return">
-                                    <option value="0" selected>0</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                    <option value="6">6</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- 乘車人數 -->
-            <div class="border-2 border-black p-4">
-                <label class="bw-label mb-4 text-lg">乘車人數 <span class="text-xs font-normal text-gray-600">（人數總和最多6位）</span></label>
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="text-sm font-bold block mb-1">大人</label>
-                        <select id="adultCount" class="bw-input text-center passenger-input" required>
-                            <option value="1" selected>1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-bold block mb-1">4~12歲小孩</label>
-                        <select id="childCount" class="bw-input text-center passenger-input">
-                            <option value="0" selected>0</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-bold block mb-1">4歲以下幼兒</label>
-                        <select id="infantCount" class="bw-input text-center passenger-input">
-                            <option value="0" selected>0</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 行理件數 -->
-            <div class="border-2 border-black p-4">
-                <label class="bw-label mb-4 text-lg">行李件數 <span class="text-xs font-normal text-gray-600">（行李總和最多6件）</span></label>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-sm font-bold block mb-1">登機箱 (件)</label>
-                        <select id="carryOnCount" class="bw-input text-center luggage-input">
-                            <option value="0" selected>0</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-bold block mb-1">託運行李 21~29吋 (件)</label>
-                        <select id="checkedCount" class="bw-input text-center luggage-input">
-                            <option value="0" selected>0</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 接送車型 (客製化下拉選單以支援括號字體縮小) -->
-            <div class="relative" id="vehicleDropdownContainer">
-                <label class="bw-label">接送車型</label>
-                <!-- 隱藏的實際輸入框，供 JS 讀取與驗證 -->
-                <input type="hidden" id="vehicleType" value="">
-                
-                <!-- 選單外盒 -->
-                <div id="customSelectTrigger" class="bw-input cursor-pointer flex justify-between items-center bg-white">
-                    <span id="selectedVehicleLabel" class="text-gray-500">請選擇接送車型</span>
-                    <svg class="select-arrow w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </div>
-
-                <!-- 選項清單 -->
-                <div id="customOptionsList" class="hidden absolute left-0 right-0 z-40 bg-white border-2 border-black mt-[-2px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    <div class="vehicle-option p-3 border-b border-gray-200 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="小車" id="opt-small">
-                        小車 <span class="text-xs">(最多2人2件行李，含登機箱)</span>
-                    </div>
-                    <div class="vehicle-option p-3 border-b border-gray-200 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="休旅車" id="opt-suv">
-                        休旅車 <span class="text-xs">(最多4人3件行李，含登機箱)</span>
-                    </div>
-                    <div class="vehicle-option p-3 cursor-pointer hover:bg-black hover:text-white transition-colors" data-value="大車" id="opt-van">
-                        大車 <span class="text-xs">(最多6人6件29吋行李，含登機箱)</span>
-                    </div>
-                </div>
-                <p id="vehicleWarning" class="text-red-600 text-sm font-bold mt-2 hidden">目前人數與行李配置沒有合適的車型，請重新調整。</p>
-            </div>
-
-            <!-- 付款方式 -->
-            <div>
-                <label class="bw-label">付款方式</label>
-                <select id="paymentMethod" class="bw-input" required>
-                    <option value="現金">現金</option>
-                    <option value="轉帳">轉帳</option>
-                </select>
-            </div>
-
-            <!-- 加價項目區 -->
-            <div class="border-2 border-black p-4 bg-gray-50">
-                <label class="bw-label text-lg border-b-2 border-black pb-2 mb-4">加價項目與特殊需求</label>
-                <div class="space-y-3">
-                    <label class="flex items-center gap-3">
-                        <input type="checkbox" id="extraSign" class="bw-checkbox" value="200">
-                        <span class="font-bold">舉牌服務 (+$200)</span>
-                    </label>
-                    <label class="flex items-center gap-3">
-                        <input type="checkbox" id="extraNight" class="bw-checkbox" disabled>
-                        <!-- 將夜間加成金額獨立出一個 id 以便動態更新 -->
-                        <span class="font-bold">夜間加成 22:00~05:59 (系統判斷 <span id="nightPriceDisplay">+$0</span>)</span>
-                    </label>
-                    <label class="flex items-center gap-3">
-                        <input type="checkbox" id="extraPickup" class="bw-checkbox" disabled>
-                        <span class="font-bold">單趟接機加價 (系統判斷 +$200)</span>
-                    </label>
-                    <label class="flex items-center gap-3">
-                        <input type="checkbox" id="extraMultiPoint" class="bw-checkbox">
-                        <span class="font-bold">多點接送 (將由客服另行報價)</span>
-                    </label>
-                    <label class="flex items-center gap-3">
-                        <input type="checkbox" id="extraChildSeat" class="bw-checkbox" disabled>
-                        <span class="font-bold">安全座椅/增高墊 (系統依4歲以下人數計算 <span id="seatPriceDisplay">+$0</span>)</span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- 系統預估總報價 (獨立醒目區塊) -->
-            <div class="border-4 border-black p-6 bg-white text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] my-8">
-                <label class="block font-extrabold text-2xl mb-2">系統預估總報價</label>
-                <p class="text-sm font-bold text-gray-500 mb-4">（依接送地區、車型及加價項目自動計算）</p>
-                <input type="text" id="estimatedPrice" class="w-full text-center font-extrabold text-gray-500 text-lg bg-transparent border-none outline-none transition-all duration-300" readonly placeholder="請選擇地區與車型以取得報價">
-            </div>
-
-            <!-- 其他備註 -->
-            <div>
-                <label class="bw-label">其他備註 <span class="text-xs font-normal text-gray-500">（需要我們注意的事項）</span></label>
-                <textarea id="remarks" class="bw-input h-24 resize-none" placeholder="如攜帶紙箱、運動版行李箱(胖胖箱)、高爾夫球具、雪板、輪椅、腳踏車箱、大型樂器等，請務必告知。"></textarea>
-            </div>
-
-            <!-- 免責聲明 -->
-            <div class="mt-8">
-                <div class="border-2 border-black p-4 text-sm mb-4 h-48 overflow-y-auto bg-gray-50 leading-relaxed">
-                    <p class="font-extrabold mb-3 text-lg border-b border-black inline-block">【乘車注意事項】</p>
-                    <ul class="list-disc pl-5 space-y-3">
-                        <li><strong>臨時加點：</strong> 司機無法私自增加停靠點。如需臨時加點，須由司機向公司回報同意後方可執行。</li>
-                        <li><strong>預約車型：</strong> 請務必依「實際乘車人數」與「行李件數尺寸」預約合適車款。</li>
-                        <li><strong>行李與乘車規範：</strong> 全程請繫妥安全帶，座位及腳踏區僅限放隨身背包。若現場行李過多不符預約車型，公司有權拒載，且該趟行程恕不退費。</li>
-                        <li><strong>車內禁食：</strong> 為維護乘車品質，車內全面禁止飲食。</li>
-                        <li><strong>兒童安全座椅：</strong> 0~4歲（18公斤內）嬰幼兒依法須使用安全座椅。若未依需求加購導致維規，相關罰款將由乘客自行負擔。</li>
-                    </ul>
-                </div>
-                <label class="flex items-start sm:items-center gap-3 cursor-pointer">
-                    <input type="checkbox" id="agreeDisclaimer" class="bw-checkbox mt-1 sm:mt-0" required>
-                    <span class="font-extrabold text-lg select-none">我已詳細閱讀並同意上述免責聲明</span>
-                </label>
-            </div>
-
-            <!-- 送出按鈕 -->
-            <div class="pt-6">
-                <button type="submit" id="submitBtn" class="bw-btn text-xl tracking-widest disabled:opacity-50">確認預約送出</button>
-            </div>
-
-        </form>
+    <div class="steps-wrapper">
+      <div class="steps">
+        <div id="stepQuote" class="step active">Step 1. 試算報價</div>
+        <div id="stepBooking" class="step">Step 2. 填寫資料</div>
+        <div id="stepDone" class="step">Step 3. 預約完成</div>
+      </div>
     </div>
 
-    <!-- 自訂訊息彈窗 (取代 alert) -->
-    <div id="customModal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white border-4 border-black p-6 w-full max-w-sm text-center transform transition-all shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-            <h3 class="text-xl font-bold mb-4 border-b-2 border-black pb-2">系統提示</h3>
-            <div id="modalMessage" class="text-base font-bold mb-6 text-gray-800 leading-relaxed"></div>
-            <button onclick="closeModal()" class="bw-btn w-32 py-2">確定</button>
+    <form id="bookingForm" onsubmit="return false;">
+      <input type="hidden" id="bookingId" />
+      <input type="hidden" id="bookingType" value="送機" />
+
+      <section id="quoteSection" class="section-card">
+        <h2 class="section-title">行程條件</h2>
+        <div class="field">
+          <label>接送類型</label>
+          <div class="segmented" id="bookingTypeSeg">
+            <button type="button" class="active" data-value="送機">送機</button>
+            <button type="button" data-value="接機">接機</button>
+            <button type="button" data-value="回來">來回</button>
+          </div>
         </div>
-    </div>
+        <div class="grid-2">
+          <div class="field"><label>縣市</label><select id="county" class="select" required><option value="">載入中...</option></select></div>
+          <div class="field"><label>區域</label><select id="zipCode" class="select" required disabled><option value="">請先選縣市</option></select></div>
+        </div>
+        <div class="field">
+          <label>車型</label>
+          <select id="vehicleType" class="select" required>
+            <option value="" disabled selected>請選擇車型</option>
+            <option value="小車">小車｜2人2件</option>
+            <option value="休旅車">休旅車｜4人3件</option>
+            <option value="大車">大車｜6人6件</option>
+          </select>
+        </div>
+        <div class="grid-2 mobile-row">
+          <div class="field"><label>乘車日期</label><input type="date" id="rideDate" class="input" required /></div>
+          <div class="field">
+            <label>時間</label>
+            <div class="flex gap-1"><select id="rideHour" class="select" required></select><select id="rideMinute" class="select" required></select></div>
+          </div>
+        </div>
+        <div id="returnDateSection" class="hidden">
+          <div class="grid-2 mobile-row">
+            <div class="field"><label>回程日期</label><input type="date" id="returnDate" class="input" /></div>
+            <div class="field"><label>回程時間</label><div class="flex gap-1"><select id="returnHour" class="select"></select><select id="returnMinute" class="select"></select></div></div>
+          </div>
+        </div>
+        <div class="grid-2 mobile-row">
+          <div class="field"><label>安全座椅 (+$200)</label><select id="infantCount" class="select"><option value="0">不需要</option><option value="1">1 張</option><option value="2">2 張</option></select></div>
+          <div class="field flex items-center pt-6"><label class="flex items-center cursor-pointer"><input type="checkbox" id="extraSign" class="w-4 h-4 mr-2 accent-[#A20055]"><span class="text-sm font-bold">需要舉牌 (+$200)</span></label></div>
+        </div>
+        <div class="price-panel">
+          <div class="price-label">系統試算總金額</div>
+          <div id="priceDisplay" class="price-amount">NT$ --</div>
+          <div id="priceSub" class="text-xs text-gray-500">請完成上方選項</div>
+          <input type="hidden" id="estimatedPrice" />
+        </div>
+        <button type="button" id="goBookingBtn" class="primary-btn" disabled>滿意價格，下一步填寫資料</button>
+      </section>
 
-    <script>
-        // ==========================================
-        // API 網址 (請確認後端已正確發布)
-        // ==========================================
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0K_NwnZIzzksur4pqb3X4fHTOO4i0s32-8UDylYVXtQhnRsJruIkYRni962I68icY/exec";
+      <section id="bookingSection" class="section-card hidden">
+        <h2 class="section-title">聯絡人資料</h2>
+        <div class="summary-box mb-4" id="quoteSummary"></div>
+        <div class="field"><label>LINE ID</label><input type="text" id="lineId" class="input" required /></div>
+        <div class="grid-2 mobile-row">
+          <div class="field"><label>姓名</label><input type="text" id="passengerName" class="input" required /></div>
+          <div class="field"><label>稱謂</label><select id="passengerTitle" class="select"><option>先生</option><option>小姐</option></select></div>
+        </div>
+        <div class="field"><label>手機號碼</label><input type="tel" id="passengerPhone" class="input" required /></div>
+        <div class="field"><label>詳細接送地址</label><input type="text" id="address" class="input" required /></div>
+        <div class="grid-2 mobile-row">
+          <div class="field"><label>航班編號</label><input type="text" id="flightNumber" class="input" required /></div>
+          <div class="field"><label>付款方式</label><select id="paymentMethod" class="select"><option>現金 / 轉帳</option><option>街口 / 全支付</option></select></div>
+        </div>
+        <div id="returnFlightSection" class="hidden field"><label>回程航班</label><input type="text" id="returnFlightNumber" class="input" /></div>
+        <div class="field"><label>備註需求</label><textarea id="remarks" class="textarea"></textarea></div>
+        <button type="button" id="submitBtn" class="primary-btn">確認預約</button>
+        <button type="button" id="backQuoteBtn" class="secondary-btn">返回修改</button>
+      </section>
 
-        /* ========================
-           1. 初始設定與 LIFF
-           ======================== */
-        document.addEventListener("DOMContentLoaded", () => {
-            generateBookingId();
-            generateTimeOptions();
-            initializeLiff();
-            setupEventListeners();
-            validateVehicleAndLuggage(); // 初始檢查
-            toggleReturnSection(); // 初始檢查回程區塊
-            
-            // 頁面載入時，向系統索取所有區域資料並生成下拉選單
-            fetchZipCodesFromGAS();
-        });
+      <section id="doneSection" class="section-card hidden">
+        <div class="text-center py-10"><div class="text-6xl mb-4" style="color: var(--brand)">✓</div><h2 class="text-2xl font-black mb-2">預約成功</h2><div class="summary-box my-6" id="doneSummary"></div><p class="text-gray-500 text-sm">客服將儘速透過 LINE 與您確認。</p></div>
+      </section>
+    </form>
+  </div>
 
-        function showModal(msg) {
-            document.getElementById('modalMessage').innerHTML = msg;
-            document.getElementById('customModal').classList.remove('hidden');
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbz0K_NwnZIzzksur4pqb3X4fHTOO4i0s32-8UDylYVXtQhnRsJruIkYRni962I68icY/exec";
+    const LIFF_ID = "2009792282-I5YaiFVf";
+    let countyMap = {}; let specialDates = []; let isCalculating = false;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      initTimeSelectors(); initBookingId(); await fetchSettings(); liff.init({ liffId: LIFF_ID }); bindEvents();
+    });
+
+    async function fetchSettings() {
+      try {
+        const res = await fetch(`${GAS_URL}?action=getSettings&t=${Date.now()}`);
+        const data = await res.json();
+        if(data.status === "success") {
+          specialDates = data.specialDates;
+          data.zips.forEach(str => {
+            const parts = str.split(' ');
+            const county = parts[1].substring(0,3).replace(/台/g,'臺');
+            if(!countyMap[county]) countyMap[county] = [];
+            countyMap[county].push({ zip: parts[0], region: parts[1].substring(3), full: str });
+          });
+          const countySelect = document.getElementById("county");
+          countySelect.innerHTML = '<option value="" disabled selected>請選擇縣市</option>' + Object.keys(countyMap).sort().map(c => `<option value="${c}">${c}</option>`).join("");
         }
+      } catch(e) { document.getElementById("county").innerHTML = '<option value="">載入失敗</option>'; }
+    }
 
-        function closeModal() {
-            document.getElementById('customModal').classList.add('hidden');
+    function bindEvents() {
+      document.getElementById("county").onchange = function() {
+        const zipSelect = document.getElementById("zipCode"); zipSelect.disabled = false;
+        zipSelect.innerHTML = '<option value="" disabled selected>區域</option>' + countyMap[this.value].map(r => `<option value="${r.full}">${r.zip} ${r.region}</option>`).join("");
+        calculate();
+      };
+      document.querySelectorAll("#bookingTypeSeg button").forEach(btn => {
+        btn.onclick = () => {
+          document.querySelectorAll("#bookingTypeSeg button").forEach(b => b.classList.remove("active")); btn.classList.add("active");
+          document.getElementById("bookingType").value = btn.dataset.value;
+          const isRound = btn.dataset.value === "回來";
+          document.getElementById("returnDateSection").classList.toggle("hidden", !isRound);
+          document.getElementById("returnFlightSection").classList.toggle("hidden", !isRound);
+          calculate();
+        };
+      });
+      ["zipCode","vehicleType","rideDate","rideHour","rideMinute","returnDate","returnHour","returnMinute","infantCount","extraSign"].forEach(id => {
+        document.getElementById(id).onchange = calculate;
+      });
+      document.getElementById("goBookingBtn").onclick = () => { setStep(2); updateSummary(); };
+      document.getElementById("backQuoteBtn").onclick = () => setStep(1);
+      document.getElementById("submitBtn").onclick = submit;
+    }
+
+    async function calculate() {
+      const zip = document.getElementById("zipCode").value; const veh = document.getElementById("vehicleType").value;
+      const date = document.getElementById("rideDate").value; const hour = document.getElementById("rideHour").value;
+      const type = document.getElementById("bookingType").value;
+      if(!zip || !veh || !date || !hour) return;
+      if(isCalculating) return; isCalculating = true;
+      document.getElementById("priceDisplay").innerText = "試算中...";
+      try {
+        const res = await fetch(`${GAS_URL}?action=getPrice&zipCode=${encodeURIComponent(zip)}&vehicleType=${encodeURIComponent(veh)}`);
+        const result = await res.json();
+        if(result.status === "success") {
+          let base = parseInt(result.price); let extra = 0; let r = [];
+          if(type === "接機") { extra += 200; r.push("接機+200"); }
+          if(parseInt(hour) >= 22 || parseInt(hour) <= 5) { extra += 200; r.push("夜間+200"); }
+          const sd = specialDates.find(d => d.date === date);
+          if(sd) { extra += parseInt(sd.surcharge); r.push(`${sd.reason}+${sd.surcharge}`); }
+          const infants = parseInt(document.getElementById("infantCount").value);
+          if(infants > 0) { extra += infants * 200; r.push(`座椅+${infants*200}`); }
+          if(document.getElementById("extraSign").checked) { extra += 200; r.push("舉牌+200"); }
+          let total = (type === "回來") ? (base * 2) + extra : base + extra;
+          document.getElementById("priceDisplay").innerText = `NT$ ${total.toLocaleString()}`;
+          document.getElementById("estimatedPrice").value = `NT$ ${total.toLocaleString()}`;
+          document.getElementById("priceSub").innerText = (type === "回來" ? "【來回雙趟】" : "") + (r.length ? `含：${r.join("、")}` : "基礎報價");
+          document.getElementById("goBookingBtn").disabled = false;
         }
+      } finally { isCalculating = false; }
+    }
 
-        function initializeLiff() {
-            const defaultLiffId = "2009792282-I5YaiFVf"; 
-            if (typeof liff !== 'undefined') {
-                liff.init({ liffId: defaultLiffId }).then(() => {
-                    if (liff.isLoggedIn()) {
-                        liff.getProfile().then(profile => {
-                            document.getElementById('lineName').value = profile.displayName;
-                        }).catch(err => {
-                            document.getElementById('lineName').value = "無法取得系統名稱";
-                        });
-                    } else {
-                        document.getElementById('lineName').value = "測試用戶(未登入)";
-                    }
-                }).catch(err => {
-                    document.getElementById('lineName').value = "測試環境(無LIFF)";
-                });
-            } else {
-                document.getElementById('lineName').value = "測試環境(無LIFF)";
-            }
+    async function submit() {
+      const btn = document.getElementById("submitBtn"); btn.disabled = true; btn.innerText = "傳送中...";
+      const payload = {
+        action: "submitBooking", bookingId: document.getElementById("bookingId").value,
+        passengerName: document.getElementById("passengerName").value + " " + document.getElementById("passengerTitle").value,
+        passengerPhone: document.getElementById("passengerPhone").value, address: document.getElementById("zipCode").value + " " + document.getElementById("address").value,
+        rideDate: document.getElementById("rideDate").value, rideTime: document.getElementById("rideHour").value + ":" + document.getElementById("rideMinute").value,
+        bookingType: document.getElementById("bookingType").value, flightNumber: document.getElementById("flightNumber").value,
+        vehicleType: document.getElementById("vehicleType").value, estimatedPrice: document.getElementById("estimatedPrice").value,
+        remarks: document.getElementById("remarks").value, payment: document.getElementById("paymentMethod").value,
+        returnDate: document.getElementById("returnDate").value || "", returnTime: document.getElementById("returnHour").value ? (document.getElementById("returnHour").value + ":" + document.getElementById("returnMinute").value) : "",
+        returnFlight: document.getElementById("returnFlightNumber").value || "", lineId: document.getElementById("lineId").value || "N/A"
+      };
+      try {
+        const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+        const resData = await res.json();
+        if(resData.status === "success") {
+          setStep(3); document.getElementById("doneSummary").innerHTML = `單號：${payload.bookingId}<br>金額：${payload.estimatedPrice}`;
+          if(liff.isInClient()) liff.sendMessages([{ type: 'text', text: `【預約成功】\n單號：${payload.bookingId}\n時間：${payload.rideDate} ${payload.rideTime}\n金額：${payload.estimatedPrice}` }]);
         }
+      } catch(e) { btn.disabled = false; btn.innerText = "確認預約"; }
+    }
 
-        /* ========================
-           2. 預約編號產生器
-           ======================== */
-        function generateBookingId() {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            const dateStr = `${yyyy}${mm}${dd}`;
-            
-            const randomDigits = Math.floor(1000 + Math.random() * 9000); // 4碼數字
-            const randomChars = generateRandomChars(3); // 3碼大小寫英文
-            
-            const bId = `123V${dateStr}${randomDigits}${randomChars}`;
-            document.getElementById('bookingId').value = bId;
-        }
-
-        function generateRandomChars(length) {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-            let result = '';
-            for (let i = 0; i < length; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
-
-        /* ========================
-           3. 乘車時間下拉選單
-           ======================== */
-        function generateTimeOptions() {
-            const hourSelect = document.getElementById('rideHour');
-            const minuteSelect = document.getElementById('rideMinute');
-            const rHourSelect = document.getElementById('returnHour');
-            const rMinuteSelect = document.getElementById('returnMinute');
-            
-            let hourHTML = '<option value="" disabled selected>時</option>';
-            for (let i = 0; i < 24; i++) {
-                let val = String(i).padStart(2, '0');
-                hourHTML += `<option value="${val}">${val}</option>`;
-            }
-            hourSelect.innerHTML = hourHTML;
-            if (rHourSelect) rHourSelect.innerHTML = hourHTML;
-
-            let minuteHTML = '<option value="" disabled selected>分</option>';
-            for (let i = 0; i < 60; i += 5) {
-                let val = String(i).padStart(2, '0');
-                minuteHTML += `<option value="${val}">${val}</option>`;
-            }
-            minuteSelect.innerHTML = minuteHTML;
-            if (rMinuteSelect) rMinuteSelect.innerHTML = minuteHTML;
-        }
-
-        /* ========================
-           4. 事件監聽設定
-           ======================== */
-        function setupEventListeners() {
-            // 電話格式強制 09XX-XXX-XXX
-            document.getElementById('passengerPhone').addEventListener('input', function(e) {
-                let val = e.target.value.replace(/\D/g, '');
-                if (val.length > 10) val = val.substring(0, 10);
-                if (val.length >= 8) {
-                    e.target.value = val.substring(0, 4) + '-' + val.substring(4, 7) + '-' + val.substring(7, 10);
-                } else if (val.length >= 5) {
-                    e.target.value = val.substring(0, 4) + '-' + val.substring(4, 7);
-                } else {
-                    e.target.value = val;
-                }
-            });
-
-            // 航班編號轉大寫
-            document.getElementById('flightNumber').addEventListener('input', function(e) {
-                e.target.value = e.target.value.toUpperCase();
-            });
-            document.getElementById('returnFlightNumber').addEventListener('input', function(e) {
-                e.target.value = e.target.value.toUpperCase();
-            });
-
-            // 日期與時間變更 - 檢查 48 小時限制與夜間加成
-            document.getElementById('rideDate').addEventListener('change', checkDateTime);
-            document.getElementById('rideHour').addEventListener('change', () => {
-                checkDateTime();
-                calculateSurcharges();
-            });
-            document.getElementById('rideMinute').addEventListener('change', checkDateTime);
-
-            // 回程日期與時間變更 (讓回程時間也能觸發加價計算)
-            document.getElementById('returnDate').addEventListener('change', checkDateTime);
-            document.getElementById('returnHour').addEventListener('change', () => {
-                checkDateTime();
-                calculateSurcharges();
-            });
-            document.getElementById('returnMinute').addEventListener('change', checkDateTime);
-
-            // 預約類型 - 客製化下拉選單邏輯 (支援括號字體縮小)
-            const bookingTrigger = document.getElementById('bookingSelectTrigger');
-            const bookingOptionsList = document.getElementById('bookingOptionsList');
-            const bookingContainer = document.getElementById('bookingDropdownContainer');
-            const bookingHiddenInput = document.getElementById('bookingType');
-            const bookingSelectedLabel = document.getElementById('selectedBookingLabel');
-
-            bookingTrigger.addEventListener('click', () => {
-                const isOpen = !bookingOptionsList.classList.contains('hidden');
-                if (isOpen) {
-                    bookingOptionsList.classList.add('hidden');
-                    bookingContainer.classList.remove('select-open');
-                } else {
-                    bookingOptionsList.classList.remove('hidden');
-                    bookingContainer.classList.add('select-open');
-                }
-            });
-
-            document.querySelectorAll('.booking-option').forEach(option => {
-                option.addEventListener('click', (e) => {
-                    const val = option.getAttribute('data-value');
-                    const labelHtml = option.innerHTML;
-                    
-                    bookingHiddenInput.value = val;
-                    bookingSelectedLabel.innerHTML = labelHtml;
-                    
-                    bookingOptionsList.classList.add('hidden');
-                    bookingContainer.classList.remove('select-open');
-                    
-                    // 觸發連動的報價及回程區塊邏輯
-                    calculateSurcharges();
-                    toggleReturnSection();
-                    fetchPriceFromGAS();
-                });
-            });
-
-            // 回程打勾選項切換顯示隱藏
-            document.getElementById('sameAsDeparture').addEventListener('change', function(e) {
-                document.getElementById('returnAddressContainer').classList.toggle('hidden', e.target.checked);
-            });
-            document.getElementById('sameAsPax').addEventListener('change', function(e) {
-                document.getElementById('returnPaxContainer').classList.toggle('hidden', e.target.checked);
-                validateVehicleAndLuggage();
-            });
-            document.getElementById('sameAsLuggage').addEventListener('change', function(e) {
-                document.getElementById('returnLuggageContainer').classList.toggle('hidden', e.target.checked);
-                validateVehicleAndLuggage();
-            });
-
-            // 監聽郵遞區號(地區下拉選單)與車型變化，觸發報價
-            document.getElementById('zipCode').addEventListener('change', fetchPriceFromGAS);
-            
-            // 客製化車型下拉選單邏輯
-            const trigger = document.getElementById('customSelectTrigger');
-            const optionsList = document.getElementById('customOptionsList');
-            const container = document.getElementById('vehicleDropdownContainer');
-            const hiddenInput = document.getElementById('vehicleType');
-            const selectedLabel = document.getElementById('selectedVehicleLabel');
-
-            trigger.addEventListener('click', () => {
-                const isOpen = !optionsList.classList.contains('hidden');
-                if (isOpen) {
-                    optionsList.classList.add('hidden');
-                    container.classList.remove('select-open');
-                } else {
-                    optionsList.classList.remove('hidden');
-                    container.classList.add('select-open');
-                }
-            });
-
-            // 點擊選項
-            document.querySelectorAll('.vehicle-option').forEach(option => {
-                option.addEventListener('click', (e) => {
-                    const val = option.getAttribute('data-value');
-                    const labelHtml = option.innerHTML;
-                    
-                    hiddenInput.value = val;
-                    selectedLabel.innerHTML = labelHtml;
-                    selectedLabel.classList.remove('text-gray-500');
-                    selectedLabel.classList.add('text-black');
-                    
-                    optionsList.classList.add('hidden');
-                    container.classList.remove('select-open');
-                    
-                    fetchPriceFromGAS();
-                    validateVehicleAndLuggage();
-                });
-            });
-
-            // 點擊外部關閉選單
-            document.addEventListener('click', (e) => {
-                if (!container.contains(e.target)) {
-                    optionsList.classList.add('hidden');
-                    container.classList.remove('select-open');
-                }
-                if (!bookingContainer.contains(e.target)) {
-                    bookingOptionsList.classList.add('hidden');
-                    bookingContainer.classList.remove('select-open');
-                }
-            });
-
-            // 人數與行李變更 - 驗證車型與費用
-            document.querySelectorAll('.passenger-input, .luggage-input, .passenger-input-return, .luggage-input-return').forEach(input => {
-                input.addEventListener('change', () => {
-                    validateVehicleAndLuggage();
-                    calculateSurcharges();
-                });
-            });
-
-            // 表單送出
-            document.getElementById('bookingForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                submitForm();
-            });
-        }
-
-        /* ========================
-           5. 核心邏輯與後端 API
-           ======================== */
-        
-        // 向系統抓取區域清單並填充下拉選單 (<select>)
-        async function fetchZipCodesFromGAS() {
-            const fallbackZips = ["台北市 中正區", "台北市 中山區", "桃園市 桃園區", "桃園市 大園區 (備用資料)"];
-            try {
-                const cacheBuster = new Date().getTime();
-                const response = await fetch(`${GAS_API_URL}?action=getZipCodes&t=${cacheBuster}`, {
-                    method: 'GET',
-                    redirect: 'follow'
-                });
-                
-                const result = await response.json();
-                
-                // 如果後端回傳成功，且有資料
-                if (result.status === "success" && result.data && result.data.length > 0) {
-                    populateZipSelects(result.data);
-                } else {
-                    // 狀況：成功連到後端 API，但後端丟了錯誤（例：找不到「報價表」工作表）
-                    console.warn("後端回傳錯誤或資料為空:", result.message || "無資料");
-                    populateZipSelects(fallbackZips);
-                    showModal("系統提示：無法讀取雲端地區資料<br>（請檢查 Google 試算表是否已正確建立「報價表」分頁，且 B、C 欄有填寫資料）。<br><br>系統已暫時為您載入「備用區域選單」以供測試。");
-                }
-            } catch (error) {
-                // 狀況：網路異常、或是 CORS 問題導致根本連不到後端
-                console.warn("連線失敗:", error);
-                populateZipSelects(fallbackZips);
-                showModal("系統提示：網路連線失敗，無法讀取雲端地區資料。<br><br>系統已暫時為您載入「備用區域選單」以供測試。");
-            }
-        }
-
-        // 將陣列資料產生至 select 選項中
-        function populateZipSelects(dataList) {
-            const zipSelect = document.getElementById('zipCode');
-            const returnZipSelect = document.getElementById('returnZipCode');
-            
-            let optionsHTML = '<option value="" disabled selected>請選擇區域</option>';
-            dataList.forEach(zip => {
-                optionsHTML += `<option value="${zip}">${zip}</option>`;
-            });
-            
-            if (zipSelect) zipSelect.innerHTML = optionsHTML;
-            if (returnZipSelect) returnZipSelect.innerHTML = optionsHTML;
-        }
-
-        // 向系統抓取報價 (含來回雙倍邏輯)
-        async function fetchPriceFromGAS() {
-            const zipCode = document.getElementById('zipCode').value.trim();
-            const vehicleType = document.getElementById('vehicleType').value;
-            const priceInput = document.getElementById('estimatedPrice');
-            const isRoundTrip = document.getElementById('bookingType').value === '回來';
-
-            if (!zipCode || !vehicleType) return;
-
-            priceInput.value = "計算報價中...";
-            priceInput.classList.replace('text-3xl', 'text-lg');
-            priceInput.classList.replace('text-red-600', 'text-gray-500');
-            
-            try {
-                const cacheBuster = new Date().getTime();
-                const response = await fetch(`${GAS_API_URL}?action=getPrice&zipCode=${encodeURIComponent(zipCode)}&vehicleType=${encodeURIComponent(vehicleType)}&t=${cacheBuster}`, {
-                    method: 'GET',
-                    redirect: 'follow'
-                });
-                const data = await response.json();
-                
-                if (data.status === "success" && data.price) {
-                    let basePrice = parseInt(data.price);
-                    if (isRoundTrip) basePrice *= 2;
-                    
-                    const infants = parseInt(document.getElementById('infantCount').value) || 0;
-                    let maxInfants = infants;
-                    if (isRoundTrip && !document.getElementById('sameAsPax').checked) {
-                        maxInfants = Math.max(infants, parseInt(document.getElementById('infantCountReturn').value) || 0);
-                    }
-                    if (maxInfants > 0) basePrice += (maxInfants * 200);
-
-                    // 計算夜間加成總額
-                    let nightCount = 0;
-                    const h = parseInt(document.getElementById('rideHour').value);
-                    if (!isNaN(h) && (h >= 22 || h <= 5)) nightCount++;
-                    
-                    if (isRoundTrip) {
-                        const rh = parseInt(document.getElementById('returnHour').value);
-                        if (!isNaN(rh) && (rh >= 22 || rh <= 5)) nightCount++;
-                    }
-                    if (nightCount > 0) basePrice += (nightCount * 200);
-
-                    if (document.getElementById('extraPickup').checked) basePrice += 200;
-                    if (document.getElementById('extraSign').checked) basePrice += 200;
-
-                    priceInput.value = `NT$ ${basePrice} (含加價項目)`;
-                    priceInput.classList.replace('text-lg', 'text-3xl');
-                    priceInput.classList.replace('text-gray-500', 'text-red-600');
-                } else {
-                    // 加入錯誤提醒，把後端的錯誤原因印出來
-                    priceInput.value = data.message || "無此區報價，請手動確認拼寫或洽客服";
-                }
-            } catch (error) {
-                console.warn("報價讀取失敗", error);
-                priceInput.value = "系統連線失敗，請洽客服";
-            }
-        }
-
-        // 檢查 48 小時預約限制
-        function checkDateTime() {
-            const dateVal = document.getElementById('rideDate').value;
-            const hourVal = document.getElementById('rideHour').value;
-            const minuteVal = document.getElementById('rideMinute').value;
-            const now = new Date();
-            const fortyEightHours = 48 * 60 * 60 * 1000;
-
-            if (dateVal && hourVal && minuteVal) {
-                const bookingDateTime = new Date(`${dateVal}T${hourVal}:${minuteVal}:00`);
-                if ((bookingDateTime - now) < fortyEightHours) {
-                    showModal('去程預約時間小於48小時無法線上預約，<br><br>請直接來電客服。');
-                    document.getElementById('rideDate').value = '';
-                }
-            }
-
-            if (document.getElementById('bookingType').value === '回來') {
-                const rDate = document.getElementById('returnDate').value;
-                const rHour = document.getElementById('returnHour').value;
-                const rMin = document.getElementById('returnMinute').value;
-                if (rDate && rHour && rMin) {
-                    const returnDateTime = new Date(`${rDate}T${rHour}:${rMin}:00`);
-                    if ((returnDateTime - now) < fortyEightHours) {
-                        showModal('回程預約時間小於48小時無法線上預約，<br><br>請直接來電客服。');
-                        document.getElementById('returnDate').value = '';
-                    }
-                }
-            }
-        }
-
-        // 控制回程資訊開關
-        function toggleReturnSection() {
-            const isRoundTrip = document.getElementById('bookingType').value === '回來';
-            const returnSection = document.getElementById('returnTripSection');
-            document.getElementById('returnDate').required = isRoundTrip;
-            document.getElementById('returnHour').required = isRoundTrip;
-            document.getElementById('returnMinute').required = isRoundTrip;
-
-            if (isRoundTrip) {
-                returnSection.classList.remove('hidden');
-            } else {
-                returnSection.classList.add('hidden');
-            }
-            validateVehicleAndLuggage();
-        }
-
-        // 動態驗證車型 (雙向檢查最大負載)
-        function validateVehicleAndLuggage() {
-            const adults = parseInt(document.getElementById('adultCount').value) || 0;
-            const childs = parseInt(document.getElementById('childCount').value) || 0;
-            const infants = parseInt(document.getElementById('infantCount').value) || 0;
-            const carryOn = parseInt(document.getElementById('carryOnCount').value) || 0;
-            const checkedBag = parseInt(document.getElementById('checkedCount').value) || 0;
-
-            let maxPax = adults + childs + infants;
-            let maxLuggage = carryOn + checkedBag;
-
-            if (document.getElementById('bookingType').value === '回來') {
-                if (!document.getElementById('sameAsPax').checked) {
-                    const rPax = (parseInt(document.getElementById('adultCountReturn').value) || 0) + (parseInt(document.getElementById('childCountReturn').value) || 0) + (parseInt(document.getElementById('infantCountReturn').value) || 0);
-                    maxPax = Math.max(maxPax, rPax);
-                }
-                if (!document.getElementById('sameAsLuggage').checked) {
-                    const rLug = (parseInt(document.getElementById('carryOnCountReturn').value) || 0) + (parseInt(document.getElementById('checkedCountReturn').value) || 0);
-                    maxLuggage = Math.max(maxLuggage, rLug);
-                }
-            }
-
-            if (maxPax > 6 || maxLuggage > 6) {
-                showModal('已超過單車最高乘載限制！<br><br>單趟人數最多6位，行李最多6件。');
-                return;
-            }
-
-            const optSmall = document.getElementById('opt-small');
-            const optSuv = document.getElementById('opt-suv');
-            const optVan = document.getElementById('opt-van');
-            const vehicleVal = document.getElementById('vehicleType').value;
-            const selectedLabel = document.getElementById('selectedVehicleLabel');
-
-            let canSmall = maxPax <= 2 && maxLuggage <= 2;
-            let canSuv = maxPax <= 4 && maxLuggage <= 3;
-            let canVan = maxPax <= 6 && maxLuggage <= 6;
-
-            // 更新選單項目的視覺效果與可用性
-            [optSmall, optSuv, optVan].forEach((el, idx) => {
-                const possible = [canSmall, canSuv, canVan][idx];
-                if (!possible) {
-                    el.classList.add('opacity-30', 'pointer-events-none', 'bg-gray-100');
-                    el.classList.remove('hover:bg-black', 'hover:text-white');
-                } else {
-                    el.classList.remove('opacity-30', 'pointer-events-none', 'bg-gray-100');
-                    el.classList.add('hover:bg-black', 'hover:text-white');
-                }
-            });
-
-            if (vehicleVal === "小車" && !canSmall || vehicleVal === "休旅車" && !canSuv) {
-                document.getElementById('vehicleType').value = "";
-                selectedLabel.innerHTML = "請選擇接送車型";
-                selectedLabel.classList.replace('text-black', 'text-gray-500');
-            }
-            
-            document.getElementById('vehicleWarning').classList.toggle('hidden', canSmall || canSuv || canVan);
-        }
-
-        // 加價判斷
-        function calculateSurcharges() {
-            let nightCount = 0;
-            
-            // 檢查去程夜間
-            const hourVal = document.getElementById('rideHour').value;
-            if (hourVal) {
-                const h = parseInt(hourVal);
-                if (h >= 22 || h <= 5) nightCount++;
-            }
-            
-            // 檢查回程夜間
-            if (document.getElementById('bookingType').value === '回來') {
-                const rHourVal = document.getElementById('returnHour').value;
-                if (rHourVal) {
-                    const rh = parseInt(rHourVal);
-                    if (rh >= 22 || rh <= 5) nightCount++;
-                }
-            }
-
-            // 更新夜間加成 Checkbox 狀態與金額文字
-            document.getElementById('extraNight').checked = (nightCount > 0);
-            document.getElementById('nightPriceDisplay').innerText = `+$${nightCount * 200}`;
-
-            document.getElementById('extraPickup').checked = (document.getElementById('bookingType').value === '接機');
-            
-            const infants = parseInt(document.getElementById('infantCount').value) || 0;
-            let maxInfants = infants;
-            if (document.getElementById('bookingType').value === '回來' && !document.getElementById('sameAsPax').checked) {
-                maxInfants = Math.max(infants, parseInt(document.getElementById('infantCountReturn').value) || 0);
-            }
-            document.getElementById('extraChildSeat').checked = (maxInfants > 0);
-            document.getElementById('seatPriceDisplay').innerText = `+$${maxInfants * 200}`;
-            fetchPriceFromGAS();
-        }
-
-        /* ========================
-           6. 表單送出處理 (統整報錯)
-           ======================== */
-        function submitForm() {
-            let errors = [];
-            const fields = [
-                { id: 'lineId', name: 'LINE ID' },
-                { id: 'passengerName', name: '乘車人姓名' },
-                { id: 'passengerPhone', name: '聯絡電話' },
-                { id: 'zipCode', name: '接送區域' },
-                { id: 'address', name: '接送詳細地址' },
-                { id: 'rideDate', name: '乘車日期' },
-                { id: 'rideHour', name: '乘車小時' },
-                { id: 'rideMinute', name: '乘車分鐘' },
-                { id: 'flightNumber', name: '航班編號' },
-                { id: 'vehicleType', name: '接送車型' },
-                { id: 'paymentMethod', name: '付款方式' }
-            ];
-
-            fields.forEach(f => {
-                if (!document.getElementById(f.id).value) errors.push(`${f.name} 為必填欄位`);
-            });
-
-            if (document.getElementById('bookingType').value === '回來') {
-                if (!document.getElementById('returnDate').value) errors.push('回程日期 未填寫');
-                if (!document.getElementById('returnHour').value) errors.push('回程時間(小時) 未填寫');
-                if (!document.getElementById('returnFlightNumber').value) errors.push('回程航班編號 未填寫');
-            }
-
-            const phone = document.getElementById('passengerPhone').value.replace(/\D/g, '');
-            if (phone && phone.length !== 10) errors.push('電話格式錯誤，必須剛好10碼');
-            if (!document.getElementById('agreeDisclaimer').checked) errors.push('須勾選同意「免責聲明」');
-
-            if (errors.length > 0) {
-                let list = errors.map(e => `• ${e}`).join('<br>');
-                showModal(`請修正以下項目後再送出：<br><br><div class="text-left text-red-600 font-bold">${list}</div>`);
-                return;
-            }
-
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.innerText = '預約資料傳送中...';
-
-            const rideHour = document.getElementById('rideHour').value;
-            const rideMinute = document.getElementById('rideMinute').value;
-
-            const formData = {
-                action: 'submitBooking',
-                bookingId: document.getElementById('bookingId').value,
-                lineId: document.getElementById('lineId').value,
-                passengerName: document.getElementById('passengerName').value + ' ' + document.getElementById('passengerTitle').value,
-                passengerPhone: document.getElementById('passengerPhone').value,
-                address: document.getElementById('zipCode').value + ' ' + document.getElementById('address').value,
-                rideDate: document.getElementById('rideDate').value,
-                rideTime: rideHour + ":" + rideMinute,
-                bookingType: document.getElementById('bookingType').value,
-                flightNumber: document.getElementById('flightNumber').value,
-                vehicleType: document.getElementById('vehicleType').value,
-                pax: `大人:${document.getElementById('adultCount').value}, 小孩:${document.getElementById('childCount').value}, 幼兒:${document.getElementById('infantCount').value}`,
-                luggage: `登機箱:${document.getElementById('carryOnCount').value}, 託運:${document.getElementById('checkedCount').value}`,
-                payment: document.getElementById('paymentMethod').value,
-                estimatedPrice: document.getElementById('estimatedPrice').value,
-                remarks: document.getElementById('remarks').value
-            };
-
-            const baseMsg = `【123機場接送 預約單成立】\n預約編號：${formData.bookingId}\n乘車人姓名：${formData.passengerName}\n乘車人電話：${formData.passengerPhone}\n接送地址：${formData.address}\n乘車日期：${formData.rideDate}\n乘車時間：${formData.rideTime}\n預約類型：${formData.bookingType}\n接送機場：桃園機場\n航班編號：${formData.flightNumber}\n預約車型：${formData.vehicleType}\n乘車人數：${formData.pax}\n行李件數：${formData.luggage}\n報價金額：${formData.estimatedPrice}\n付款方式：${formData.payment}\n備註：${formData.remarks || '無'}`;
-
-            let returnInfo = '';
-            if (formData.bookingType === '回來') {
-                const rDate = document.getElementById('returnDate').value;
-                const rHour = document.getElementById('returnHour').value;
-                const rMin = document.getElementById('returnMinute').value;
-                const rTime = rHour + ":" + rMin;
-                const rFlight = document.getElementById('returnFlightNumber').value;
-                
-                const rAddr = document.getElementById('sameAsDeparture').checked ? '同去程' : `${document.getElementById('returnZipCode').value} ${document.getElementById('returnAddress').value}`;
-                const rPax = document.getElementById('sameAsPax').checked ? '同去程' : `大人:${document.getElementById('adultCountReturn').value}, 小孩:${document.getElementById('childCountReturn').value}, 幼兒:${document.getElementById('infantCountReturn').value}`;
-                const rLug = document.getElementById('sameAsLuggage').checked ? '同去程' : `登機箱:${document.getElementById('carryOnCountReturn').value}, 託運:${document.getElementById('checkedCountReturn').value}`;
-                
-                // 將回程詳細資料存入 formData 以供後端接收
-                formData.returnDate = rDate;
-                formData.returnTime = rTime;
-                formData.returnFlight = rFlight;
-                formData.returnAddress = rAddr;
-                formData.returnPax = rPax;
-                formData.returnLuggage = rLug;
-
-                returnInfo = `\n\n【回程資訊】\n資訊如送機\n日期：${rDate}\n時間：${rTime}\n航班：${rFlight}\n地址：${rAddr}\n人數：${rPax}\n行李：${rLug}`;
-            }
-
-            fetch(GAS_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(formData)
-            })
-            .then(res => res.json())
-            .then(result => {
-                if(result.status === "success") {
-                    showModal('您的訂單已成功送出！請您耐心稍候，待客服人員為您確認訂單內容無誤後，即立即為您保留車輛，感謝您的配合。');
-                    if (typeof liff !== 'undefined' && liff.isInClient()) {
-                        liff.sendMessages([{ type: 'text', text: baseMsg + returnInfo }]).then(() => liff.closeWindow());
-                    } else {
-                        btn.disabled = false;
-                        btn.innerText = '確認預約送出';
-                        document.getElementById('bookingForm').reset();
-                        generateBookingId();
-                        // 重置車型標籤與回程區塊
-                        document.getElementById('selectedVehicleLabel').innerHTML = "請選擇接送車型";
-                        document.getElementById('selectedVehicleLabel').classList.replace('text-black', 'text-gray-500');
-                        document.getElementById('selectedBookingLabel').innerHTML = "送機";
-                        document.getElementById('bookingType').value = "送機";
-                        toggleReturnSection();
-                    }
-                } else {
-                    showModal('系統處理異常，請洽客服');
-                }
-            })
-            .catch(err => {
-                showModal('連線失敗！請確認網路環境，或稍後再試。');
-                btn.disabled = false;
-                btn.innerText = '確認預約送出';
-            });
-        }
-    </script>
+    function initTimeSelectors() {
+      let h = '<option value="" disabled selected>時</option>'; for(let i=0;i<24;i++) h+=`<option value="${i.toString().padStart(2,'0')}">${i.toString().padStart(2,'0')}</option>`;
+      let m = '<option value="" disabled selected>分</option>'; for(let i=0;i<60;i+=5) m+=`<option value="${i.toString().padStart(2,'0')}">${i.toString().padStart(2,'0')}</option>`;
+      ["rideHour","returnHour"].forEach(id => document.getElementById(id).innerHTML = h); ["rideMinute","returnMinute"].forEach(id => document.getElementById(id).innerHTML = m);
+    }
+    function initBookingId() { document.getElementById("bookingId").value = "ANS" + new Date().getTime().toString().slice(-8); }
+    function setStep(s) {
+      document.querySelectorAll(".step").forEach(el => el.classList.remove("active"));
+      document.getElementById("quoteSection").classList.add("hidden"); document.getElementById("bookingSection").classList.add("hidden"); document.getElementById("doneSection").classList.add("hidden");
+      if(s===1) { document.getElementById("stepQuote").classList.add("active"); document.getElementById("quoteSection").classList.remove("hidden"); }
+      if(s===2) { document.getElementById("stepBooking").classList.add("active"); document.getElementById("bookingSection").classList.remove("hidden"); }
+      if(s===3) { document.getElementById("stepDone").classList.add("active"); document.getElementById("doneSection").classList.remove("hidden"); }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function updateSummary() {
+      document.getElementById("quoteSummary").innerHTML = `行程：${document.getElementById("bookingType").value} ｜ 地區：${document.getElementById("zipCode").value}<br>預估金額：<span style="color: var(--brand)">${document.getElementById("estimatedPrice").value}</span>`;
+    }
+  </script>
 </body>
 </html>
