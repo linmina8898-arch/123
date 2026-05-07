@@ -117,7 +117,7 @@
       font-weight: 800; margin-left: 8px;
     }
 
-    /* 自訂提示彈窗樣式 */
+    /* 自訂提示彈窗樣式 (解決 alert() 無效問題) */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.5); 
       display: flex; align-items: center; justify-content: center; z-index: 1000;
@@ -176,21 +176,7 @@
             <button type="button" data-value="接機">接機</button>
             <button type="button" data-value="來回">來回</button>
           </div>
-          
-          <!-- 新增：來回的子選項 (預設隱藏，點擊來回後顯示) -->
-          <div id="firstLegSection" class="hidden mt-3 p-3 bg-pink-50 border border-pink-200 rounded-md text-sm">
-            <span class="font-bold text-pink-800 block mb-2">請問第一趟（去程）為：</span>
-            <div class="flex gap-4">
-              <label class="flex items-center cursor-pointer font-medium text-gray-700">
-                <input type="radio" name="firstLegType" value="送機" class="mr-1 accent-[#A20055]" checked> 送機(家→機場)
-              </label>
-              <label class="flex items-center cursor-pointer font-medium text-gray-700">
-                <input type="radio" name="firstLegType" value="接機" class="mr-1 accent-[#A20055]"> 接機(機場→家)
-              </label>
-            </div>
-          </div>
         </div>
-        
         <div class="grid-2">
           <div class="field"><label>縣市</label><select id="county" class="select" required><option value="">載入中...</option></select></div>
           <div class="field"><label>區域</label><select id="zipCode" class="select" required disabled><option value="">請先選縣市</option></select></div>
@@ -304,9 +290,10 @@
   </div>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbx_wDJJPmbpnNxpeVcmMqO4gTxP65XHoFR_9lwL3K55xvBXED19HroEFAqtETQzqqktnQ/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbybFWwnHcUBfuGVfCsXH9xMKkBoSX6PnvyB2-HJnUZsLl1lh1zSRsOQNlqCcIcAJm7vCA/exec";
     const LIFF_ID = "2009792282-I5YaiFVf";
     let countyMap = {}; let specialDates = []; let isCalculating = false;
+    let priceMap = {}; // 新增：用來儲存在前端的價格表
 
     // 車型載重限制
     const VEHICLE_LIMITS = {
@@ -323,70 +310,27 @@
     function closeMsg() { document.getElementById("msgModal").classList.add("hidden"); }
 
     document.addEventListener("DOMContentLoaded", async () => {
-      initDateConstraints();
-      initTimeSelectors(); 
-      initBookingId(); 
-      await fetchSettings(); 
-      liff.init({ liffId: LIFF_ID }); 
-      bindEvents();
+      initTimeSelectors(); initBookingId(); await fetchSettings(); liff.init({ liffId: LIFF_ID }); bindEvents();
       setupInputFormatters();
     });
 
-    // 初始化日期限制 (最少48小時)
-    function initDateConstraints() {
-      const now = new Date();
-      now.setHours(now.getHours() + 48); // 設定為 48 小時後
-      const tzOffset = now.getTimezoneOffset() * 60000;
-      const minDateStr = new Date(now.getTime() - tzOffset).toISOString().split('T')[0];
-      
-      const rideDateEl = document.getElementById("rideDate");
-      const returnDateEl = document.getElementById("returnDate");
-      
-      rideDateEl.min = minDateStr;
-      returnDateEl.min = minDateStr;
-      rideDateEl.value = minDateStr; // 日期自動 +48 小時
-    }
-
-    // 將處理資料的邏輯獨立出來
-    function renderSettingsData(data) {
-      specialDates = data.specialDates || [];
-      countyMap = {};
-      if(data.zips) {
-        data.zips.forEach(str => {
-          const parts = str.split(' ');
-          if(parts.length >= 2) {
-            const county = parts[1].substring(0,3).replace(/台/g,'臺');
-            if(!countyMap[county]) countyMap[county] = [];
-            countyMap[county].push({ zip: parts[0], region: parts[1].substring(3), full: str });
-          }
-        });
-        const countySelect = document.getElementById("county");
-        const currentVal = countySelect.value; // 記住使用者目前的選擇避免被刷新掉
-        countySelect.innerHTML = '<option value="" disabled selected>請選擇縣市</option>' + Object.keys(countyMap).sort().map(c => `<option value="${c}">${c}</option>`).join("");
-        if (currentVal && countyMap[currentVal]) countySelect.value = currentVal;
-      }
-    }
-
     async function fetchSettings() {
-      const CACHE_KEY = "airport_settings_cache";
-      const cached = localStorage.getItem(CACHE_KEY);
-      
-      // 1. 如果有本地快取，0.1秒瞬間載入畫面
-      if (cached) {
-        try { renderSettingsData(JSON.parse(cached)); } catch(e) {}
-      }
-
-      // 2. 在背景偷偷跟 Google Sheet 更新最新資料，不卡住使用者
       try {
         const res = await fetch(`${GAS_URL}?action=getSettings&t=${Date.now()}`);
         const data = await res.json();
         if(data.status === "success") {
-          localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-          renderSettingsData(data);
+          specialDates = data.specialDates;
+          priceMap = data.prices || {}; // 新增：接收後端傳來的價格資料
+          data.zips.forEach(str => {
+            const parts = str.split(' ');
+            const county = parts[1].substring(0,3).replace(/台/g,'臺');
+            if(!countyMap[county]) countyMap[county] = [];
+            countyMap[county].push({ zip: parts[0], region: parts[1].substring(3), full: str });
+          });
+          const countySelect = document.getElementById("county");
+          countySelect.innerHTML = '<option value="" disabled selected>請選擇縣市</option>' + Object.keys(countyMap).sort().map(c => `<option value="${c}">${c}</option>`).join("");
         }
-      } catch(e) {
-        if (!cached) document.getElementById("county").innerHTML = '<option value="">載入失敗，請重整</option>';
-      }
+      } catch(e) { document.getElementById("county").innerHTML = '<option value="">載入失敗</option>'; }
     }
 
     function setupInputFormatters() {
@@ -411,34 +355,19 @@
         zipSelect.innerHTML = '<option value="" disabled selected>區域</option>' + countyMap[this.value].map(r => `<option value="${r.full}">${r.zip} ${r.region}</option>`).join("");
         calculate();
       };
-      
       document.querySelectorAll("#bookingTypeSeg button").forEach(btn => {
         btn.onclick = () => {
-          document.querySelectorAll("#bookingTypeSeg button").forEach(b => b.classList.remove("active")); 
-          btn.classList.add("active");
+          document.querySelectorAll("#bookingTypeSeg button").forEach(b => b.classList.remove("active")); btn.classList.add("active");
           document.getElementById("bookingType").value = btn.dataset.value;
-          
           const isRound = btn.dataset.value === "來回";
-          
-          // 【非常重要】顯示或隱藏來回的子選項
-          if (isRound) {
-            document.getElementById("firstLegSection").classList.remove("hidden");
-            document.getElementById("returnDateSection").classList.remove("hidden");
-            document.getElementById("returnFlightSection").classList.remove("hidden");
-          } else {
-            document.getElementById("firstLegSection").classList.add("hidden");
-            document.getElementById("returnDateSection").classList.add("hidden");
-            document.getElementById("returnFlightSection").classList.add("hidden");
-          }
-          
+          document.getElementById("returnDateSection").classList.toggle("hidden", !isRound);
+          document.getElementById("returnFlightSection").classList.toggle("hidden", !isRound);
           calculate();
         };
       });
-      
       ["zipCode","vehicleType","rideDate","rideHour","rideMinute","returnDate","returnHour","returnMinute","infantCount","extraSign"].forEach(id => {
         document.getElementById(id).onchange = calculate;
       });
-      
       document.getElementById("goBookingBtn").onclick = () => { setStep(2); updateSummary(); };
       document.getElementById("backQuoteBtn").onclick = () => setStep(1);
       document.getElementById("submitBtn").onclick = submit;
@@ -452,15 +381,6 @@
       
       if(!zip || !veh || !date || !hour) { display.innerText = "NT$ --"; btn.disabled = true; nightHint.classList.add("hidden"); return; }
       
-      const minute = document.getElementById("rideMinute").value || "00";
-      const [y, m, d] = date.split('-');
-      const rideDateTime = new Date(y, m - 1, d, hour, minute);
-      if ((rideDateTime - new Date()) / 3600000 < 48) {
-        display.innerText = "時間過近";
-        document.getElementById("priceSub").innerText = "出發時間少於48小時，無法線上預訂";
-        btn.disabled = true; nightHint.classList.add("hidden"); return;
-      }
-      
       if (type === "來回") {
         const rDate = document.getElementById("returnDate").value; const rHour = document.getElementById("returnHour").value;
         if (!rDate || !rHour) { display.innerText = "請填寫回程資訊"; btn.disabled = true; return; }
@@ -472,34 +392,47 @@
         }
       }
 
-      if(isCalculating) return; isCalculating = true; display.innerText = "試算中...";
-      
+      // 移除 isCalculating 阻擋邏輯與連線 API，改為本地瞬間計算
       try {
-        const res = await fetch(`${GAS_URL}?action=getPrice&zipCode=${encodeURIComponent(zip)}&vehicleType=${encodeURIComponent(veh)}`);
-        const result = await res.json();
-        if(result.status === "success") {
-          let base = parseInt(result.price); let extra = 0; let r = [];
-          if(type === "接機" || type === "來回") { extra += 200; r.push("接機+200"); }
-          const isNight = (parseInt(hour) >= 22 || parseInt(hour) <= 4);
-          if(isNight) { extra += 200; r.push("去程夜間+200"); }
-          if (type === "來回" && (parseInt(document.getElementById("returnHour").value) >= 22 || parseInt(document.getElementById("returnHour").value) <= 4)) {
-            extra += 200; r.push("回程夜間+200");
-          }
-          const sd = specialDates.find(d => d.date === date);
-          if(sd) { extra += parseInt(sd.surcharge); r.push(`${sd.reason}+${sd.surcharge}`); }
-          const infants = parseInt(document.getElementById("infantCount").value);
-          if(infants > 0) { extra += infants * 200; r.push(`座椅+${infants*200}`); }
-          if(document.getElementById("extraSign").checked) { extra += 200; r.push("舉牌+200"); }
-          let total = (type === "來回") ? (base * 2) + extra - 200 : base + extra;
-          display.innerText = `NT$ ${total.toLocaleString()}`;
-          document.getElementById("estimatedPrice").value = `NT$ ${total.toLocaleString()}`;
-          let subText = r.length ? `含：${r.join("、")}` : "基礎報價";
-          if (type === "來回") subText += "、來回折抵-200";
-          document.getElementById("priceSub").innerText = subText;
-          if (isNight) nightHint.classList.remove("hidden"); else nightHint.classList.add("hidden");
-          btn.disabled = false;
+        let vehKey = "小車";
+        if(veh.includes("休旅車")) vehKey = "休旅車";
+        else if(veh.includes("大車")) vehKey = "大車";
+
+        let base = 0;
+        if (priceMap[zip] && priceMap[zip][vehKey]) {
+          base = parseInt(priceMap[zip][vehKey]);
         }
-      } catch(e) { display.innerText = "連線失敗"; } finally { isCalculating = false; }
+        
+        if (base === 0) {
+          display.innerText = "無此區報價"; btn.disabled = true; return;
+        }
+
+        let extra = 0; let r = [];
+        if(type === "接機" || type === "來回") { extra += 200; r.push("接機+200"); }
+        const isNight = (parseInt(hour) >= 22 || parseInt(hour) <= 4);
+        if(isNight) { extra += 200; r.push("去程夜間+200"); }
+        if (type === "來回" && (parseInt(document.getElementById("returnHour").value) >= 22 || parseInt(document.getElementById("returnHour").value) <= 4)) {
+          extra += 200; r.push("回程夜間+200");
+        }
+        const sd = specialDates.find(d => d.date === date);
+        if(sd) { extra += parseInt(sd.surcharge); r.push(`${sd.reason}+${sd.surcharge}`); }
+        const infants = parseInt(document.getElementById("infantCount").value);
+        if(infants > 0) { extra += infants * 200; r.push(`座椅+${infants*200}`); }
+        if(document.getElementById("extraSign").checked) { extra += 200; r.push("舉牌+200"); }
+        
+        let total = (type === "來回") ? (base * 2) + extra - 200 : base + extra;
+        
+        display.innerText = `NT$ ${total.toLocaleString()}`;
+        document.getElementById("estimatedPrice").value = `NT$ ${total.toLocaleString()}`;
+        
+        let subText = r.length ? `含：${r.join("、")}` : "基礎報價";
+        if (type === "來回") subText += "、來回折抵-200";
+        document.getElementById("priceSub").innerText = subText;
+        if (isNight) nightHint.classList.remove("hidden"); else nightHint.classList.add("hidden");
+        btn.disabled = false;
+      } catch(e) { 
+        display.innerText = "計算錯誤"; 
+      }
     }
 
     function validateCapacity() {
@@ -544,32 +477,16 @@
       const btn = document.getElementById("submitBtn"); 
       btn.disabled = true; btn.innerText = "傳送中...";
       
-      // 判斷第一趟類型
-      let firstLegVal = type; // 預設跟隨本體
-      if (type === "來回") {
-        const firstLegRadio = document.querySelector('input[name="firstLegType"]:checked');
-        if (firstLegRadio) firstLegVal = firstLegRadio.value;
-      }
-      
       const payload = {
-        action: "submitBooking", 
-        bookingId: document.getElementById("bookingId").value,
+        action: "submitBooking", bookingId: document.getElementById("bookingId").value,
         passengerName: pName + " " + document.getElementById("passengerTitle").value,
-        passengerPhone: pPhone, 
-        address: document.getElementById("zipCode").value + " " + addr,
-        rideDate: document.getElementById("rideDate").value, 
-        rideTime: document.getElementById("rideHour").value + ":" + document.getElementById("rideMinute").value,
-        bookingType: type, 
-        firstLegType: firstLegVal, // 傳送第一趟的類型
-        flightNumber: flight,
-        vehicleType: document.getElementById("vehicleType").value, 
-        estimatedPrice: document.getElementById("estimatedPrice").value,
-        remarks: document.getElementById("remarks").value, 
-        payment: document.getElementById("paymentMethod").value,
-        returnDate: document.getElementById("returnDate").value || "", 
-        returnTime: document.getElementById("returnHour").value ? (document.getElementById("returnHour").value + ":" + document.getElementById("returnMinute").value) : "",
-        returnFlight: retFlight, 
-        lineId: lineId,
+        passengerPhone: pPhone, address: document.getElementById("zipCode").value + " " + addr,
+        rideDate: document.getElementById("rideDate").value, rideTime: document.getElementById("rideHour").value + ":" + document.getElementById("rideMinute").value,
+        bookingType: type, flightNumber: flight,
+        vehicleType: document.getElementById("vehicleType").value, estimatedPrice: document.getElementById("estimatedPrice").value,
+        remarks: document.getElementById("remarks").value, payment: document.getElementById("paymentMethod").value,
+        returnDate: document.getElementById("returnDate").value || "", returnTime: document.getElementById("returnHour").value ? (document.getElementById("returnHour").value + ":" + document.getElementById("returnMinute").value) : "",
+        returnFlight: retFlight, lineId: lineId,
         pax: `大人:${document.getElementById("adultCount").value}, 小孩:${document.getElementById("childCount").value}`,
         luggage: `托運:${document.getElementById("checkedCount").value}, 登機箱:${document.getElementById("carryOnCount").value}`
       };
@@ -579,26 +496,16 @@
           method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload) 
         });
         const resData = await res.json();
-        
         if(resData.status === "success") {
           setStep(3); 
           document.getElementById("doneSummary").innerHTML = `單號：<b>${payload.bookingId}</b><br>金額：<b>${payload.estimatedPrice}</b>`;
-          
           if(liff.isInClient()) {
             const msgs = [];
-            // 客製化要求的完整 LINE 通知細節
-            const commonDetails = `姓名：${payload.passengerName}\n電話：${payload.passengerPhone}\n地址：${payload.address}\n人數：${payload.pax}\n行李：${payload.luggage}\n備註：${payload.remarks || '無'}`;
-            
             if(type === "來回") {
-              // 拆解出首趟與第二趟
-              const outType = payload.firstLegType;
-              const retType = outType === "送機" ? "接機" : "送機";
-              
-              msgs.push({ type: 'text', text: `【來回-去程預約明細】\n預約編號：${payload.bookingId}-1\n類型：${outType}\n日期：${payload.rideDate}\n時間：${payload.rideTime}\n航班：${payload.flightNumber}\n\n${commonDetails}\n\n金額：${payload.estimatedPrice}` });
-              
-              msgs.push({ type: 'text', text: `【來回-回程預約明細】\n預約編號：${payload.bookingId}-2\n類型：${retType}\n日期：${payload.returnDate}\n時間：${payload.returnTime}\n航班：${payload.returnFlight}\n\n${commonDetails}\n\n金額：同上(總額)` });
+              msgs.push({ type: 'text', text: `【去程預約成功】\n單號：${payload.bookingId}-1\n類型：來回(去)\n時間：${payload.rideDate} ${payload.rideTime}\n航班：${payload.flightNumber}\n金額：${payload.estimatedPrice}\n地址：${payload.address}` });
+              msgs.push({ type: 'text', text: `【回程預約成功】\n單號：${payload.bookingId}-2\n類型：來回(回)\n時間：${payload.returnDate} ${payload.returnTime}\n航班：${payload.returnFlight}\n金額：${payload.estimatedPrice}\n地址：${payload.address}` });
             } else {
-              msgs.push({ type: 'text', text: `【預約成功明細】\n預約編號：${payload.bookingId}\n類型：${type}\n日期：${payload.rideDate}\n時間：${payload.rideTime}\n航班：${payload.flightNumber}\n\n${commonDetails}\n\n金額：${payload.estimatedPrice}` });
+              msgs.push({ type: 'text', text: `【預約成功】\n單號：${payload.bookingId}\n時間：${payload.rideDate} ${payload.rideTime}\n金額：${payload.estimatedPrice}\n地址：${payload.address}` });
             }
             liff.sendMessages(msgs);
           }
@@ -628,7 +535,6 @@
       if(s===3) { document.getElementById("stepDone").classList.add("active"); document.getElementById("doneSection").classList.remove("hidden"); }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
     function updateSummary() {
       const type = document.getElementById("bookingType").value; const zip = document.getElementById("zipCode").value; const price = document.getElementById("estimatedPrice").value; const vehicle = document.getElementById("vehicleType").value;
       document.getElementById("quoteSummary").innerHTML = `
