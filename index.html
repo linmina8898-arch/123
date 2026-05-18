@@ -177,6 +177,15 @@
             <button type="button" data-value="來回">來回</button>
           </div>
         </div>
+        <div class="field">
+          <label>接送機場</label>
+          <select id="airport" class="select" required>
+            <option value="" disabled selected>請選擇機場</option>
+            <option value="桃園機場">桃園機場</option>
+            <option value="松山機場">松山機場</option>
+            <option value="台中機場">台中機場</option>
+          </select>
+        </div>
         <div class="grid-2">
           <div class="field"><label>縣市</label><select id="county" class="select" required><option value="">載入中...</option></select></div>
           <div class="field"><label>區域</label><select id="zipCode" class="select" required disabled><option value="">請先選縣市</option></select></div>
@@ -364,22 +373,25 @@
           document.getElementById("returnFlightSection").classList.toggle("hidden", !isRound);
           calculate();
         };
-      });
+      }); // 這裡補上缺失的 });
+
       ["zipCode","vehicleType","rideDate","rideHour","rideMinute","returnDate","returnHour","returnMinute","infantCount","extraSign"].forEach(id => {
         document.getElementById(id).onchange = calculate;
       });
+      document.getElementById("airport").onchange = calculate;
       document.getElementById("goBookingBtn").onclick = () => { setStep(2); updateSummary(); };
       document.getElementById("backQuoteBtn").onclick = () => setStep(1);
       document.getElementById("submitBtn").onclick = submit;
     }
 
     async function calculate() {
+      const airport = document.getElementById("airport").value;
       const zip = document.getElementById("zipCode").value; const veh = document.getElementById("vehicleType").value;
       const date = document.getElementById("rideDate").value; const hour = document.getElementById("rideHour").value;
       const type = document.getElementById("bookingType").value;
       const display = document.getElementById("priceDisplay"); const btn = document.getElementById("goBookingBtn"); const nightHint = document.getElementById("nightHint");
       
-      if(!zip || !veh || !date || !hour) { display.innerText = "NT$ --"; btn.disabled = true; nightHint.classList.add("hidden"); return; }
+      if(!airport || !zip || !veh || !date || !hour) { display.innerText = "NT$ --"; btn.disabled = true; nightHint.classList.add("hidden"); return; }
       
       if (type === "來回") {
         const rDate = document.getElementById("returnDate").value; const rHour = document.getElementById("returnHour").value;
@@ -459,14 +471,20 @@
     async function submit() {
       if(!validateCapacity()) return;
 
+      const airport = document.getElementById("airport").value;
       const lineId = document.getElementById("lineId").value.trim();
       const pName = document.getElementById("passengerName").value.trim();
+      const pTitle = document.getElementById("passengerTitle").value;
       const pPhone = document.getElementById("passengerPhone").value.trim();
       const addr = document.getElementById("address").value.trim();
       const flight = document.getElementById("flightNumber").value.trim();
       const type = document.getElementById("bookingType").value;
       const retFlight = document.getElementById("returnFlightNumber").value.trim();
+      const infantCount = document.getElementById("infantCount").value;
+      const extraSign = document.getElementById("extraSign").checked ? "需要" : "不需要";
+      const remarks = document.getElementById("remarks").value.trim() || "無";
 
+      if(!airport) { showMsg("請選擇接送機場。"); return; }
       if(!lineId) { showMsg("請填寫您的 LINE ID。"); return; }
       if(!pName) { showMsg("請填寫乘車人姓名。"); return; }
       if(pPhone.length < 12) { showMsg("請填寫正確的 10 碼手機號碼。"); return; }
@@ -479,16 +497,19 @@
       
       const payload = {
         action: "submitBooking", bookingId: document.getElementById("bookingId").value,
-        passengerName: pName + " " + document.getElementById("passengerTitle").value,
+        airport: airport,
+        passengerName: pName + " " + pTitle,
         passengerPhone: pPhone, address: document.getElementById("zipCode").value + " " + addr,
         rideDate: document.getElementById("rideDate").value, rideTime: document.getElementById("rideHour").value + ":" + document.getElementById("rideMinute").value,
         bookingType: type, flightNumber: flight,
         vehicleType: document.getElementById("vehicleType").value, estimatedPrice: document.getElementById("estimatedPrice").value,
-        remarks: document.getElementById("remarks").value, payment: document.getElementById("paymentMethod").value,
+        remarks: remarks, payment: document.getElementById("paymentMethod").value,
         returnDate: document.getElementById("returnDate").value || "", returnTime: document.getElementById("returnHour").value ? (document.getElementById("returnHour").value + ":" + document.getElementById("returnMinute").value) : "",
         returnFlight: retFlight, lineId: lineId,
         pax: `大人:${document.getElementById("adultCount").value}, 小孩:${document.getElementById("childCount").value}`,
-        luggage: `托運:${document.getElementById("checkedCount").value}, 登機箱:${document.getElementById("carryOnCount").value}`
+        luggage: `托運:${document.getElementById("checkedCount").value}, 登機箱:${document.getElementById("carryOnCount").value}`,
+        infantCount: infantCount, // 新增：安全座椅數量
+        extraSign: extraSign // 新增：是否需要舉牌
       };
 
       try {
@@ -501,11 +522,29 @@
           document.getElementById("doneSummary").innerHTML = `單號：<b>${payload.bookingId}</b><br>金額：<b>${payload.estimatedPrice}</b>`;
           if(liff.isInClient()) {
             const msgs = [];
+            
+            // 共通的車輛與需求文字
+            const carAndNeedText = `━━━━━\n🚗 車輛與需求\n預約車型：${payload.vehicleType}\n搭乘人數：${payload.pax}\n行李數量：${payload.luggage}\n安全座椅：${payload.infantCount} 張\n舉牌服務：${payload.extraSign}\n備註需求：${payload.remarks}`;
+            // 共通的聯絡人文字
+            const contactText = `━━━━━\n👤 聯絡人資訊\n聯絡姓名：${payload.passengerName}\n手機號碼：${payload.passengerPhone}\nLINE ID ：${payload.lineId}`;
+
             if(type === "來回") {
-              msgs.push({ type: 'text', text: `【去程預約成功】\n單號：${payload.bookingId}-1\n類型：來回(去)\n時間：${payload.rideDate} ${payload.rideTime}\n航班：${payload.flightNumber}\n金額：${payload.estimatedPrice}\n地址：${payload.address}` });
-              msgs.push({ type: 'text', text: `【回程預約成功】\n單號：${payload.bookingId}-2\n類型：來回(回)\n時間：${payload.returnDate} ${payload.returnTime}\n航班：${payload.returnFlight}\n金額：${payload.estimatedPrice}\n地址：${payload.address}` });
+              const outgoType = payload.firstLegType || "送機"; // 第一趟
+              const returnType = (outgoType === "送機") ? "接機" : "送機";
+
+              msgs.push({ 
+                type: 'text', 
+                text: `【去程預約成功】\n訂單編號：${payload.bookingId}-1\n━━━━━\n📌 行程資訊\n行程類型：來回(${outgoType})\n接送機場：${payload.airport}\n乘車日期：${payload.rideDate}\n乘車時間：${payload.rideTime}\n航班編號：${payload.flightNumber}\n接送地址：${payload.address}\n${carAndNeedText}\n${contactText}\n━━━━━\n💰 費用資訊\n付款方式：${payload.payment}\n總計金額：${payload.estimatedPrice} (含去/回程總額)` 
+              });
+              msgs.push({ 
+                type: 'text', 
+                text: `【回程預約成功】\n訂單編號：${payload.bookingId}-2\n━━━━━\n📌 行程資訊\n行程類型：來回(${returnType})\n接送機場：${payload.airport}\n乘車日期：${payload.returnDate}\n乘車時間：${payload.returnTime}\n航班編號：${payload.returnFlight}\n接送地址：${payload.address}\n${carAndNeedText}\n${contactText}\n━━━━━\n💰 費用資訊\n付款方式：${payload.payment}\n總計金額：同去程訂單` 
+              });
             } else {
-              msgs.push({ type: 'text', text: `【預約成功】\n單號：${payload.bookingId}\n時間：${payload.rideDate} ${payload.rideTime}\n金額：${payload.estimatedPrice}\n地址：${payload.address}` });
+              msgs.push({ 
+                type: 'text', 
+                text: `【機場接送預約成功】\n訂單編號：${payload.bookingId}\n━━━━━\n📌 行程資訊\n行程類型：${type}\n接送機場：${payload.airport}\n乘車日期：${payload.rideDate}\n乘車時間：${payload.rideTime}\n航班編號：${payload.flightNumber}\n接送地址：${payload.address}\n${carAndNeedText}\n${contactText}\n━━━━━\n💰 費用資訊\n付款方式：${payload.payment}\n預估金額：${payload.estimatedPrice}` 
+              });
             }
             liff.sendMessages(msgs);
           }
@@ -535,11 +574,13 @@
       if(s===3) { document.getElementById("stepDone").classList.add("active"); document.getElementById("doneSection").classList.remove("hidden"); }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    
     function updateSummary() {
-      const type = document.getElementById("bookingType").value; const zip = document.getElementById("zipCode").value; const price = document.getElementById("estimatedPrice").value; const vehicle = document.getElementById("vehicleType").value;
+      const type = document.getElementById("bookingType").value; const airport = document.getElementById("airport").value; const zip = document.getElementById("zipCode").value; const price = document.getElementById("estimatedPrice").value; const vehicle = document.getElementById("vehicleType").value;
       document.getElementById("quoteSummary").innerHTML = `
         <div class="flex flex-col gap-2">
           <div><span class="summary-label">行程：</span><span>${type}</span>${type === "來回" ? '<span class="summary-discount">已享折 $200</span>' : ''}</div>
+          <div><span class="summary-label">機場：</span><span>${airport}</span></div>
           <div><span class="summary-label">地區：</span><span>${zip}</span></div>
           <div><span class="summary-label">車型：</span><span>${vehicle}</span></div>
           <div class="mt-2 pt-2 border-t border-pink-200">
