@@ -15,8 +15,8 @@
       --bg-light: #F8F9FA;
       --border-color: #EEEEEE;
       --accent-soft: #F9E6EE;
-      --discount-bg: #E6F4EA; 
-      --discount-text: #1E7E34; 
+      --discount-bg: #553F62; 
+      --discount-text: #FFFFFF; 
       --night-bg: #FFF4E5;
       --night-text: #B7791F;
     }
@@ -115,6 +115,29 @@
       background: var(--discount-bg); color: var(--discount-text); 
       font-size: 12px; padding: 2px 8px; border-radius: 4px; 
       font-weight: 800; margin-left: 8px;
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    .summary-price-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+
+    .summary-price-row .summary-label {
+      flex-shrink: 0;
+    }
+
+    .summary-price-amount {
+      color: var(--brand);
+      font-size: 24px;
+      font-weight: 900;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     /* 自訂提示彈窗樣式 (解決 alert() 無效問題) */
@@ -386,25 +409,48 @@
 
     async function calculate() {
       const airport = document.getElementById("airport").value;
-      const zip = document.getElementById("zipCode").value; const veh = document.getElementById("vehicleType").value;
-      const date = document.getElementById("rideDate").value; const hour = document.getElementById("rideHour").value;
+      const zip = document.getElementById("zipCode").value;
+      const veh = document.getElementById("vehicleType").value;
+      const date = document.getElementById("rideDate").value;
+      const hour = document.getElementById("rideHour").value;
       const type = document.getElementById("bookingType").value;
-      const display = document.getElementById("priceDisplay"); const btn = document.getElementById("goBookingBtn"); const nightHint = document.getElementById("nightHint");
-      
-      if(!airport || !zip || !veh || !date || !hour) { display.innerText = "NT$ --"; btn.disabled = true; nightHint.classList.add("hidden"); return; }
-      
+      const display = document.getElementById("priceDisplay");
+      const btn = document.getElementById("goBookingBtn");
+      const nightHint = document.getElementById("nightHint");
+      const priceSub = document.getElementById("priceSub");
+
+      if(!airport || !zip || !veh || !date || !hour) {
+        display.innerText = "NT$ --";
+        priceSub.innerText = "請完成上方選項";
+        btn.disabled = true;
+        nightHint.classList.add("hidden");
+        return;
+      }
+
       if (type === "來回") {
-        const rDate = document.getElementById("returnDate").value; const rHour = document.getElementById("returnHour").value;
-        if (!rDate || !rHour) { display.innerText = "請填寫回程資訊"; btn.disabled = true; return; }
-        const isOutNight = (parseInt(hour) >= 22 || parseInt(hour) <= 4);
-        const isRetNight = (parseInt(rHour) >= 22 || parseInt(rHour) <= 4);
+        const rDate = document.getElementById("returnDate").value;
+        const rHour = document.getElementById("returnHour").value;
+
+        if (!rDate || !rHour) {
+          display.innerText = "請填寫回程資訊";
+          priceSub.innerText = "請完成回程日期與時間";
+          btn.disabled = true;
+          nightHint.classList.add("hidden");
+          return;
+        }
+
+        const isOutNight = (parseInt(hour, 10) >= 22 || parseInt(hour, 10) <= 4);
+        const isRetNight = (parseInt(rHour, 10) >= 22 || parseInt(rHour, 10) <= 4);
+
         if (isOutNight !== isRetNight) {
-          display.innerText = "時段條件不同"; document.getElementById("priceSub").innerText = "因其中一行程有夜間加價，請分開預約或連繫客服。";
-          btn.disabled = true; nightHint.classList.add("hidden"); return;
+          display.innerText = "時段條件不同";
+          priceSub.innerText = "因其中一行程有夜間加價，請分開預約或連繫客服。";
+          btn.disabled = true;
+          nightHint.classList.add("hidden");
+          return;
         }
       }
 
-      // 移除 isCalculating 阻擋邏輯與連線 API，改為本地瞬間計算
       try {
         let vehKey = "小車";
         if(veh.includes("休旅車")) vehKey = "休旅車";
@@ -412,38 +458,102 @@
 
         let base = 0;
         if (priceMap[zip] && priceMap[zip][vehKey]) {
-          base = parseInt(priceMap[zip][vehKey]);
-        }
-        
-        if (base === 0) {
-          display.innerText = "無此區報價"; btn.disabled = true; return;
+          base = parseInt(priceMap[zip][vehKey], 10) || 0;
         }
 
-        let extra = 0; let r = [];
-        if(type === "接機" || type === "來回") { extra += 200; r.push("接機+200"); }
-        const isNight = (parseInt(hour) >= 22 || parseInt(hour) <= 4);
-        if(isNight) { extra += 200; r.push("去程夜間+200"); }
-        if (type === "來回" && (parseInt(document.getElementById("returnHour").value) >= 22 || parseInt(document.getElementById("returnHour").value) <= 4)) {
-          extra += 200; r.push("回程夜間+200");
+        if (base === 0) {
+          display.innerText = "無此區報價";
+          priceSub.innerText = "請聯繫客服協助報價";
+          btn.disabled = true;
+          nightHint.classList.add("hidden");
+          return;
         }
-        const sd = specialDates.find(d => d.date === date);
-        if(sd) { extra += parseInt(sd.surcharge); r.push(`${sd.reason}+${sd.surcharge}`); }
-        const infants = parseInt(document.getElementById("infantCount").value);
-        if(infants > 0) { extra += infants * 200; r.push(`座椅+${infants*200}`); }
-        if(document.getElementById("extraSign").checked) { extra += 200; r.push("舉牌+200"); }
-        
-        let total = (type === "來回") ? (base * 2) + extra - 200 : base + extra;
-        
+
+        let extra = 0;
+        let r = [];
+
+        const isNight = (parseInt(hour, 10) >= 22 || parseInt(hour, 10) <= 4);
+        if(isNight) {
+          extra += 200;
+          r.push("去程夜間+200");
+        }
+
+        let surchargeGo = 0;
+        let surchargeReturn = 0;
+
+        const sdGo = specialDates.find(d => d.date === date);
+        if(sdGo) {
+          surchargeGo = parseInt(sdGo.surcharge, 10) || 0;
+          extra += surchargeGo;
+          r.push(`去程${sdGo.reason}+${surchargeGo}`);
+        }
+
+        if (type === "來回") {
+          const rDate = document.getElementById("returnDate").value;
+          const rHour = document.getElementById("returnHour").value;
+
+          // 來回必定一趟送機、一趟接機，所以只加一次接機 +200
+          extra += 200;
+          r.push("接機+200");
+
+          const isReturnNight = (parseInt(rHour, 10) >= 22 || parseInt(rHour, 10) <= 4);
+          if(isReturnNight) {
+            extra += 200;
+            r.push("回程夜間+200");
+          }
+
+          const sdReturn = specialDates.find(d => d.date === rDate);
+          if(sdReturn) {
+            surchargeReturn = parseInt(sdReturn.surcharge, 10) || 0;
+            extra += surchargeReturn;
+            r.push(`回程${sdReturn.reason}+${surchargeReturn}`);
+          }
+
+        } else if(type === "接機") {
+          extra += 200;
+          r.push("接機+200");
+        }
+
+        const infants = parseInt(document.getElementById("infantCount").value, 10) || 0;
+        if(infants > 0) {
+          extra += infants * 200;
+          r.push(`座椅+${infants * 200}`);
+        }
+
+        if(document.getElementById("extraSign").checked) {
+          extra += 200;
+          r.push("舉牌+200");
+        }
+
+        const isSpecialPeriod = surchargeGo > 0 || surchargeReturn > 0;
+        let total = 0;
+
+        if (type === "來回") {
+          if (isSpecialPeriod) {
+            // 特殊日期：只要去程或回程任一天符合，就取消來回折 $200
+            total = (base * 2) + extra;
+            r.push("特殊日期不適用來回折扣");
+          } else {
+            // 一般來回：折 $200
+            total = (base * 2) + extra - 200;
+            r.push("來回折抵-200");
+          }
+        } else {
+          total = base + extra;
+        }
+
         display.innerText = `NT$ ${total.toLocaleString()}`;
         document.getElementById("estimatedPrice").value = `NT$ ${total.toLocaleString()}`;
-        
-        let subText = r.length ? `含：${r.join("、")}` : "基礎報價";
-        if (type === "來回") subText += "、來回折抵-200";
-        document.getElementById("priceSub").innerText = subText;
-        if (isNight) nightHint.classList.remove("hidden"); else nightHint.classList.add("hidden");
+
+        priceSub.innerText = r.length ? `含：${r.join("、")}` : "基礎報價";
+        if (isNight) nightHint.classList.remove("hidden");
+        else nightHint.classList.add("hidden");
+
         btn.disabled = false;
       } catch(e) { 
-        display.innerText = "計算錯誤"; 
+        display.innerText = "計算錯誤";
+        priceSub.innerText = e.message || "請重新整理後再試";
+        btn.disabled = true;
       }
     }
 
@@ -497,6 +607,7 @@
       
       const payload = {
         action: "submitBooking", bookingId: document.getElementById("bookingId").value,
+        zipCode: document.getElementById("zipCode").value,
         airport: airport,
         passengerName: pName + " " + pTitle,
         passengerPhone: pPhone, address: document.getElementById("zipCode").value + " " + addr,
@@ -576,16 +687,23 @@
     }
     
     function updateSummary() {
-      const type = document.getElementById("bookingType").value; const airport = document.getElementById("airport").value; const zip = document.getElementById("zipCode").value; const price = document.getElementById("estimatedPrice").value; const vehicle = document.getElementById("vehicleType").value;
+      const type = document.getElementById("bookingType").value;
+      const airport = document.getElementById("airport").value;
+      const zip = document.getElementById("zipCode").value;
+      const price = document.getElementById("estimatedPrice").value;
+      const vehicle = document.getElementById("vehicleType").value;
+
+      const hasDiscount = type === "來回" && !document.getElementById("priceSub").innerText.includes("特殊日期不適用來回折扣");
+
       document.getElementById("quoteSummary").innerHTML = `
         <div class="flex flex-col gap-2">
-          <div><span class="summary-label">行程：</span><span>${type}</span>${type === "來回" ? '<span class="summary-discount">已享折 $200</span>' : ''}</div>
+          <div><span class="summary-label">行程：</span><span>${type}</span>${hasDiscount ? '<span class="summary-discount">已享折 $200</span>' : ''}</div>
           <div><span class="summary-label">機場：</span><span>${airport}</span></div>
           <div><span class="summary-label">地區：</span><span>${zip}</span></div>
           <div><span class="summary-label">車型：</span><span>${vehicle}</span></div>
-          <div class="mt-2 pt-2 border-t border-pink-200">
+          <div class="summary-price-row mt-2 pt-2 border-t border-pink-200">
             <span class="summary-label">預估金額：</span>
-            <div class="text-2xl font-black mt-1" style="color: var(--brand)">${price}</div>
+            <span class="summary-price-amount">${price}</span>
           </div>
         </div>`;
     }
